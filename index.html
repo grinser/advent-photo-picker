@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Privacy: the page may load only files from this folder and must not connect anywhere. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src file: 'unsafe-inline'; style-src 'unsafe-inline'; img-src file: data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 106 118%22%3E%3Crect x=%226%22 y=%226%22 width=%22100%22 height=%22112%22 rx=%2214%22 fill=%22%23c4302b%22/%3E%3Crect width=%22100%22 height=%22112%22 rx=%2214%22 fill=%22%23f2c14e%22/%3E%3Crect x=%225%22 y=%225%22 width=%2290%22 height=%22102%22 rx=%2210%22 fill=%22none%22 stroke=%22%230e2a21%22 stroke-width=%223%22/%3E%3Cpath fill=%22%230e2a21%22 d=%22M32.8 35Q36.8 35 39.9 36.2Q43.1 37.4 44.9 39.7Q46.7 42 46.7 45.4Q46.7 48.5 45.1 51.2Q43.6 53.8 40.9 56.5Q38.2 59.2 34.7 62.2Q31.3 65.1 27.4 68.9H42.4Q43.7 68.9 44.8 68.2Q45.9 67.5 46.1 65.8H47.4Q47.4 66.4 47.3 67.3Q47.3 68.3 47.3 69.1Q47.3 70.4 47.4 72.6Q47.4 74.8 47.7 77H29.3Q25.5 77 23.1 76.9Q20.7 76.9 18.5 77V75.8Q21.4 73.6 24 71Q26.6 68.4 28.8 65.6Q31 62.7 32.5 59.6Q34.1 56.5 35 53.1Q35.8 49.8 35.8 46.1Q35.8 42 34.8 40Q33.9 37.9 32.5 37.2Q31 36.4 29.6 36.4Q28.5 36.4 27.5 36.7Q26.5 37 25.9 37.5Q28 38.1 29 39.6Q29.9 41.2 29.9 42.9Q29.9 45.3 28.3 46.6Q26.6 47.9 24.5 47.9Q22.2 47.9 20.9 46.4Q19.6 44.9 19.6 43Q19.6 41 20.7 39.6Q21.9 38.3 23.2 37.4Q24.9 36.4 27.3 35.7Q29.6 35 32.8 35Z M74.7 35 74.5 36.9 51.6 68 54.9 62.3H81.2V69.1H50.3V67.9ZM75.6 35V70.8Q75.6 72.9 75.9 74Q76.1 75 76.9 75.4Q77.7 75.7 79.1 75.8V77Q77.7 76.9 75.2 76.9Q72.8 76.8 70 76.8Q67.8 76.8 65.7 76.9Q63.6 76.9 62.2 77V75.8Q64.1 75.7 65.1 75.4Q66.2 75 66.5 74Q66.9 72.9 66.9 70.8V46.6L74.7 35Z%22/%3E%3C/svg%3E">
+<title data-en="Advent calendar with 24 photos from one year">Adventkalender mit 24 Bildern aus einem Jahr</title>
+<style>
+html[lang=en]{--seen-label:"✓ seen";--last-label:"● last viewed"}
+:root{--bg:#141416;--pn:#1e1f23;--ln:#2e3037;--tx:#ececf0;--mu:#9a9ba3;--ac:#e8ad3c;--bad:#e06c66;--ok:#55b985;--btn:#2a2c33;--pri:#55b985;--pritx:#06200f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--pn);padding:10px 14px;border-bottom:1px solid var(--ln)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0}
+h1{font-size:16px;margin:0 12px 0 0}
+#count{font-size:20px;font-weight:700;color:var(--ac);margin-right:12px}
+#count.over{color:var(--bad)}
+button,select{background:var(--btn);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--mu)}
+button.on{background:var(--ac);color:#1b1505;border-color:var(--ac)}
+button.pri{background:var(--pri);color:var(--pritx);border-color:var(--pri);font-weight:600}
+.mo .dr{display:inline-block;width:9px;height:12px;margin-right:4px;vertical-align:-1px;border:1.5px solid currentColor;border-radius:4px 4px 1px 1px;background:radial-gradient(circle at 72% 55%,currentColor 0 1px,transparent 1.4px)}
+.mo .st{margin-left:8px}
+.mo small{display:block;font-size:11px;color:var(--mu)}
+.mo.on small{color:#1b1505}
+.mo b.full{color:var(--ok)} .mo.on b.full{color:#1b1505}
+.row.one{flex-wrap:nowrap}
+.scrollrow{flex:1;min-width:0;margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+/* rechts neben beiden Zeilen dieselben zwei Knöpfe in derselben Breite: Liste, Bearbeiten */
+.rowact{flex:none;display:grid;grid-template-columns:auto 36px;gap:6px}
+.rowact[hidden]{display:none}
+.rowact button{white-space:nowrap;padding:5px 12px} .rowact button+button{padding:5px 0}
+.chip[hidden],.more[hidden]{display:none}
+#mp{left:auto;width:min(360px,92vw);max-height:70vh;display:flex;flex-direction:column;gap:8px}
+#mp[hidden]{display:none}
+#mp input{background:#111;color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;font:inherit}
+#mplist{overflow:auto;display:flex;flex-direction:column;gap:4px}
+#mplist .chip{justify-content:flex-start;border-radius:8px;min-height:36px;padding:2px 8px}
+#mplist .chip i{margin-left:auto}
+.scrollrow::-webkit-scrollbar{display:none}
+.scrollrow>*{flex:none}
+.scrollrow:empty{display:none}
+#active{flex:none}
+.facets{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.facets:not(:has(.chip)){display:none}
+.facets .row.one{margin:0;gap:6px}
+.facets .scrollrow{gap:6px;border-radius:18px}
+.facets .scrollrow>.hint{min-width:58px}
+.facets button{height:36px;border-radius:18px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 2px;border-radius:18px}
+.chip img{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.chip.nope{padding:2px 12px}
+.chip i{font-style:normal;color:var(--mu);font-size:12px}
+.chip.on i{color:#1b1505}
+#first{margin:12px 14px 0;padding:8px 12px;border:1px dashed var(--ln);border-radius:10px}
+#first[hidden]{display:none}
+label{color:var(--mu)} .hint{color:var(--mu);font-size:12px}
+main{padding:10px 14px 60px}
+h2{font-size:18px;color:var(--tx);margin:22px 0 10px;font-weight:700;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--ln);padding-bottom:6px}
+h2 .n{background:var(--btn);border-radius:12px;padding:2px 10px;font-size:13px;font-weight:600}
+h2 .hs{color:var(--ac);font-size:13px;font-weight:600}
+#shown{background:var(--btn);border-radius:12px;padding:3px 12px;font-weight:600;margin-right:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
+.t{position:relative;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden;cursor:pointer;border:3px solid transparent}
+.t img{width:100%;height:100%;object-fit:cover;display:block}
+.t.out img{opacity:.45}
+.t.rej img{opacity:.25;filter:grayscale(1)}
+.t.sel{border-color:var(--ac)}
+.t .star{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px}
+.t.sel .star{background:var(--ac);color:#1b1505}
+.t .bd{position:absolute;left:4px;bottom:4px;display:flex;gap:3px;flex-wrap:wrap}
+.bd span{background:rgba(0,0,0,.65);border-radius:4px;padding:1px 5px;font-size:11px}
+.bd .r{color:#ffb3ae}
+#lb{position:fixed;inset:0;z-index:10;background:rgba(10,10,12,.97);display:flex}
+#lb[hidden],#ex[hidden]{display:none}
+#lbmain{flex:1;min-width:0;display:flex;flex-direction:column;padding:12px}
+#lbimgw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#lbimg{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+#lbinfo{padding:8px 0;color:var(--mu)} #lbinfo b{color:var(--tx)}
+#lbside{width:380px;background:var(--pn);border-left:1px solid var(--ln);display:flex;flex-direction:column}
+#tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px}
+#stripinfo{padding:0 10px 6px;color:var(--mu);font-size:12px}
+#strip{flex:1;overflow:auto;padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
+#strip .t.cur{outline:2px solid #fff}
+#ex{position:fixed;inset:0;z-index:20;background:rgba(10,10,12,.92);display:flex;align-items:center;justify-content:center}
+#exbox{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:18px;width:min(820px,92vw);max-height:90vh;overflow:auto}
+textarea{width:100%;height:190px;background:#111;color:#cfe;border:1px solid var(--ln);border-radius:6px;font:12px ui-monospace,Menlo,monospace;padding:8px}
+#pv,#plv{position:fixed;inset:0;z-index:20;background:rgba(10,10,12,.97);overflow:auto;padding:0 18px 40px}
+#pv[hidden],#plv[hidden]{display:none}
+#pvbar,#plbar{position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:2}
+.pc{background:var(--pn);border:2px solid var(--ln);border-radius:10px;padding:10px;margin-bottom:10px;cursor:pointer}
+.pc.pick{border-color:var(--ac);background:#2a2618} .pc.pick>.row::before{content:"✓";color:var(--ac);font-weight:700;font-size:18px} .pc.hid{opacity:.45}
+.pc .fs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pc .fs img{width:130px;height:130px;border-radius:8px;object-fit:cover;background:#000}
+.pc input[type=text]{background:#111;color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:5px 8px;font:inherit;width:200px}
+#lbimgw{position:relative;overflow:hidden}
+#crop{position:absolute;box-shadow:0 0 0 4000px rgba(0,0,0,.66);outline:2px solid #fff;pointer-events:none}
+#crop[hidden]{display:none}
+#crop i{position:absolute;border:1px dashed rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#lbbadge{z-index:2}
+#lbbadge{position:absolute;top:10px;left:10px;background:var(--ac);color:#1b1505;font-weight:700;border-radius:8px;padding:6px 12px;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+#lbbadge.no{background:var(--bad);color:#fff}
+#lbbadge[hidden]{display:none}
+#lbimgw.sel #lbimg{outline:4px solid var(--ac);outline-offset:-1px}
+#lbimgw.rej #lbimg{opacity:.45}
+.t .star{font-weight:700;font-size:15px;line-height:1}
+.t:not(.sel) .star{color:transparent;-webkit-text-stroke:1.4px #fff}
+#exgrid .t::after,#exgrid .star{display:none}
+.t.seen::after{content:var(--seen-label,"✓ gesehen");position:absolute;top:5px;left:5px;background:rgba(0,0,0,.62);color:#d6f5e3;font-size:11px;border-radius:4px;padding:1px 6px}
+.t.last{outline:3px solid #fff;outline-offset:2px;z-index:1;animation:lastp 1.2s ease-in-out 3}
+.t.last::after{content:var(--last-label,"● zuletzt angesehen");background:#fff;color:#111;font-weight:700}
+@keyframes lastp{50%{outline-color:var(--ac);outline-offset:5px}}
+#stat u{cursor:pointer}
+.t .door{position:absolute;top:38px;right:4px;width:30px;height:32px;border-radius:7px 7px 2px 2px;background:rgba(0,0,0,.6);color:#fff;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:1.5px dashed rgba(255,255,255,.6)}
+.t.sel .door{display:flex}
+.t.fin .door{background:#b3342c;color:#fff7e0;border:1.5px solid var(--ac)}
+.t.fin{border-color:#fff}
+.bd .cv{background:var(--ac);color:#1b1505;font-weight:700}
+#pre{background:var(--btn);border-radius:12px;padding:3px 12px;font-weight:600;margin-right:8px}
+#pre b{color:var(--ac)}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:40;background:#b3342c;color:#fff;padding:10px 18px;border-radius:8px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+#toast[hidden]{display:none}
+/* ---------- Festliches Design (Knopf 🎄 schaltet um). Die Großansicht bleibt neutral dunkel, damit Farben der Fotos nicht verfälscht wirken. ---------- */
+body.festive{--bg:#0e1d18;--pn:#14302a;--ln:#285045;--tx:#f6efdc;--mu:#a8bcae;--ac:#eabf55;--bad:#e2685c;--ok:#6fcf97;--btn:#1d4037;--pri:#c23b32;--pritx:#fff7e0;
+  background:radial-gradient(1200px 500px at 50% -100px,#17382f,transparent) fixed,var(--bg)}
+body.festive header{background:linear-gradient(180deg,#184036,#122b25);border-bottom:5px solid;border-image:repeating-linear-gradient(135deg,#c23b32 0 10px,#f6efdc 10px 20px) 5;box-shadow:0 4px 14px rgba(0,0,0,.45);overflow:hidden}
+body.festive header::before{content:"";position:absolute;inset:-200px 0 0 0;pointer-events:none;opacity:.35;
+  background-image:radial-gradient(2px 2px at 20px 30px,#fff,transparent),radial-gradient(2px 2px at 140px 90px,#fff,transparent),radial-gradient(1.5px 1.5px at 80px 160px,#fff,transparent),radial-gradient(2.5px 2.5px at 190px 20px,#fff,transparent),radial-gradient(1.5px 1.5px at 60px 110px,#fff,transparent);
+  background-size:230px 200px;animation:snow 16s linear infinite}
+body.festive header>*{position:relative}
+@keyframes snow{to{transform:translateY(200px)}}
+@media (max-width:800px){
+  header{padding:8px 10px;position:static}
+  #months,.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .tabs button{white-space:nowrap;flex:none}
+  h2{flex-wrap:wrap} h2 .n{white-space:nowrap}
+
+  #months>*{flex:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  #keys,#lb .hint{display:none}
+  #lb{flex-direction:column;overflow:auto}
+  #lbmain{flex:none;height:72vh;padding:8px}
+  #lbside{width:auto;flex:none;height:70vh;border-left:0;border-top:1px solid var(--ln)}
+  #strip{grid-template-columns:repeat(3,1fr)}
+}
+@media (prefers-reduced-motion:reduce){body.festive header::before{animation:none}}
+body.festive h1,body.festive h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.2px}
+body.festive h2::before{content:"✦";color:var(--ac)}
+body.festive #count{background:#b3342c;color:#fff7e0;border:1px solid var(--ac);border-radius:9px 9px 3px 3px;padding:1px 14px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+body.festive #count.over{background:#4a1512;color:#ffb3ae}
+body.festive button.on{color:#2a1d00}
+body.festive .t{border-radius:8px}
+body.festive .t.sel{box-shadow:0 0 0 1px #7a5c14,0 0 16px rgba(234,191,85,.45)}
+body.festive .t.sel .star{background:var(--ac);color:#2a1d00}
+body.festive .pc.pick{background:#2b3a22}
+body.festive #lbbadge{background:#b3342c;color:#fff7e0;border:1.5px solid var(--ac)}
+.tabs{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--bg);border:1px solid var(--ln)}
+.tabs button{border:0;border-radius:999px;background:transparent;padding:5px 15px;font-weight:600}
+.tabs button:hover{background:var(--btn)} .tabs button.on,.tabs button.on:hover{background:var(--ac)}
+.tabs button b{color:var(--ac);margin-left:4px} .tabs button.on b{color:inherit}
+.tabs button.warn b{color:var(--bad)}
+.pop{position:fixed;right:14px;z-index:6;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;max-width:min(560px,92vw);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.pop[hidden]{display:none}
+.af{border-radius:14px;padding:2px 10px;font-size:12px;border-color:var(--ac)}
+#stat{padding:0 14px 6px} #keys{padding:0 14px 40px}
+.t.kc{outline:3px dashed #fff;outline-offset:2px;z-index:1}
+kbd{background:#33353d;border-radius:4px;padding:0 5px;font:12px ui-monospace,Menlo,monospace}
+
+/* ---------- Festliches Design, Farben wie im Artikel: Tannengrün, Gold, Zuckerstangenrot. Systemschriften; nur das Logo trägt die "24" aus Playfair Display (als Pfade, SIL Open Font License 1.1). ---------- */
+body.festive{--bg:#0e2a21;--deep:#0a2019;--pn:#123628;--soft:#163e30;--ln:#2f5446;--tx:#f7eedc;--mu:#b9c4b4;--ac:#f2c14e;--gold-soft:rgba(242,193,78,.32);--candy:#c4302b;--bad:#ff8f8a;--ok:#7fd9a4;--btn:#163e30;--pri:#c4302b;--pritx:#fff8ec;
+  background:radial-gradient(1200px 500px at 50% -100px,#184336,transparent) fixed,var(--bg)}
+body.festive header{background:linear-gradient(180deg,#184336,var(--pn));border-bottom-width:4px;border-image:repeating-linear-gradient(-45deg,var(--candy) 0 10px,var(--tx) 10px 20px) 4}
+body.festive header h1{display:flex;align-items:center;gap:9px;font-size:21px;color:var(--tx)}
+body.festive header h1::before{content:"";flex:none;width:27px;height:30px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 106 118%22%3E%3Crect x=%226%22 y=%226%22 width=%22100%22 height=%22112%22 rx=%2214%22 fill=%22%23c4302b%22/%3E%3Crect width=%22100%22 height=%22112%22 rx=%2214%22 fill=%22%23f2c14e%22/%3E%3Crect x=%225%22 y=%225%22 width=%2290%22 height=%22102%22 rx=%2210%22 fill=%22none%22 stroke=%22%230e2a21%22 stroke-width=%223%22/%3E%3Cpath fill=%22%230e2a21%22 d=%22M32.8 35Q36.8 35 39.9 36.2Q43.1 37.4 44.9 39.7Q46.7 42 46.7 45.4Q46.7 48.5 45.1 51.2Q43.6 53.8 40.9 56.5Q38.2 59.2 34.7 62.2Q31.3 65.1 27.4 68.9H42.4Q43.7 68.9 44.8 68.2Q45.9 67.5 46.1 65.8H47.4Q47.4 66.4 47.3 67.3Q47.3 68.3 47.3 69.1Q47.3 70.4 47.4 72.6Q47.4 74.8 47.7 77H29.3Q25.5 77 23.1 76.9Q20.7 76.9 18.5 77V75.8Q21.4 73.6 24 71Q26.6 68.4 28.8 65.6Q31 62.7 32.5 59.6Q34.1 56.5 35 53.1Q35.8 49.8 35.8 46.1Q35.8 42 34.8 40Q33.9 37.9 32.5 37.2Q31 36.4 29.6 36.4Q28.5 36.4 27.5 36.7Q26.5 37 25.9 37.5Q28 38.1 29 39.6Q29.9 41.2 29.9 42.9Q29.9 45.3 28.3 46.6Q26.6 47.9 24.5 47.9Q22.2 47.9 20.9 46.4Q19.6 44.9 19.6 43Q19.6 41 20.7 39.6Q21.9 38.3 23.2 37.4Q24.9 36.4 27.3 35.7Q29.6 35 32.8 35Z M74.7 35 74.5 36.9 51.6 68 54.9 62.3H81.2V69.1H50.3V67.9ZM75.6 35V70.8Q75.6 72.9 75.9 74Q76.1 75 76.9 75.4Q77.7 75.7 79.1 75.8V77Q77.7 76.9 75.2 76.9Q72.8 76.8 70 76.8Q67.8 76.8 65.7 76.9Q63.6 76.9 62.2 77V75.8Q64.1 75.7 65.1 75.4Q66.2 75 66.5 74Q66.9 72.9 66.9 70.8V46.6L74.7 35Z%22/%3E%3C/svg%3E") center/contain no-repeat}
+body.festive button,body.festive select{border-radius:8px}
+body.festive button.on{background:var(--ac);border-color:var(--ac);color:var(--bg)}
+body.festive textarea,body.festive #mp input,body.festive .pc input[type=text]{background:var(--deep);border-color:var(--ln);color:var(--tx)}
+body.festive .tabs{background:var(--deep);border-color:var(--gold-soft)}
+body.festive .facets button{border-radius:18px} body.festive .tabs button{border-radius:999px}
+body.festive .mo{background:transparent;border:1px dashed var(--gold-soft)}
+body.festive .mo:hover{border-style:solid;border-color:var(--ac)}
+body.festive .mo.on{background:var(--ac);border:1px solid var(--ac)}
+body.festive .mo.on small,body.festive .mo.on b,body.festive .mo.on b.full{color:var(--bg)}
+body.festive .chip{background:var(--soft)} body.festive .chip.on{background:var(--ac)} body.festive .chip.on i{color:var(--bg)}
+body.festive h2{border-bottom-color:var(--gold-soft)}
+body.festive h2 .n{background:var(--soft)}
+body.festive .t{border-radius:9px;border-width:2px}
+body.festive .t.sel{border-color:var(--ac);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--gold-soft)}
+body.festive .t.fin{border-color:var(--ac);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ac),0 0 14px rgba(242,193,78,.3)}
+body.festive .t.sel .star{background:var(--ac);color:var(--bg)}
+body.festive .t.fin .door{border:0;border-radius:4px;background:var(--candy);color:#fff8ec;box-shadow:inset 0 0 0 1.5px var(--ac),2px 2px 6px rgba(0,0,0,.45)}
+body.festive .bd .cv{background:var(--ac);color:var(--bg)}
+body.festive #exbox,body.festive .pop{border:1px solid var(--ac);border-radius:14px;box-shadow:0 0 0 4px var(--bg),0 0 0 5px var(--gold-soft),0 18px 40px rgba(0,0,0,.45)}
+body.festive .pc{border-width:1px;border-radius:12px}
+body.festive .pc.pick{border-color:var(--ac);background:var(--soft);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--gold-soft)}
+body.festive #pvbar h1,body.festive #plbar h1,body.festive #exbox h1{color:var(--ac)}
+body.festive #lbbadge{background:var(--candy);color:#fff8ec;border:0;box-shadow:inset 0 0 0 1.5px var(--ac),0 2px 10px rgba(0,0,0,.5)}
+body.festive #toast{background:var(--candy);box-shadow:inset 0 0 0 1.5px var(--ac),0 4px 18px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<header id="hd">
+  <div class="row">
+    <h1 data-en="Advent calendar">Adventkalender</h1>
+    <div class="tabs" id="tabs1">
+      <button id="bAll" title="Alle Kandidaten sichten" data-en-title="Review all candidates"><span data-en="Review">Sichten</span> <b id="nAll"></b></button>
+      <button id="bOnly" title="Nur die Vorauswahl zeigen" data-en-title="Show the shortlist only"><span data-en="Shortlist">Vorauswahl</span> <b id="nPre"></b></button>
+      <button id="bFin"><span data-en="Doors">Türchen</span> <b id="nFin"></b></button>
+      <button id="bEx" title="Türchen und Titelbild exportieren" data-en-title="Export the doors and the cover">Export …</button>
+    </div>
+    <span style="flex:1"></span>
+    <div class="row" id="active" style="margin:0"></div>
+    <button id="bFilter" data-pop="fp">Filter ▾</button>
+    <button id="bGear" data-pop="gp" title="Anzeige und Einstellungen" data-en-title="View and settings">⚙</button>
+  </div>
+  <div class="row" id="months"></div>
+  <div class="facets">
+  <div class="row one"><div class="row scrollrow" id="persons"></div><div class="rowact" hidden><button class="more" data-more="persons" title="Liste aller Personen mit Suche" data-en-title="List of all people with search" data-en="All ▾">Alle ▾</button><button id="pvBtn" data-pv="1" title="Personen bearbeiten: benennen, zusammenlegen, ausblenden" data-en-title="Edit people: name, merge or hide" aria-label="Personen bearbeiten" data-en-aria="Edit people">✎</button></div></div>
+  <div class="row one"><div class="row scrollrow" id="places"></div><div class="rowact" hidden><button class="more" data-more="places" title="Liste aller Orte mit Suche" data-en-title="List of all places with search" data-en="All ▾">Alle ▾</button><button id="plBtn" data-plv="1" title="Orte bearbeiten: umbenennen und zusammenlegen" data-en-title="Edit places: rename and merge" aria-label="Orte bearbeiten" data-en-aria="Edit places">✎</button></div></div>
+  </div>
+</header>
+<p id="first" hidden data-en="Click ☆ on a photo to put it on the shortlist. A + then appears under the star, and clicking it makes the photo one of the 24 doors. Open a photo to compare it with similar ones and to make it the cover. Export … gives you the files.">Klicke bei einem Bild auf ☆, um es in die Vorauswahl zu legen. Unter dem Stern erscheint dann ein +. Mit einem Klick darauf wird das Bild eines der 24 Türchen. Öffne ein Bild, um es mit ähnlichen zu vergleichen und zum Titelbild zu machen. Export … liefert die Dateien.</p>
+<div class="pop" id="fp" hidden>
+  <div class="row"><label><span data-en="Place">Ort</span> <select id="sPlace"></select></label><label>Format <select id="sOri"><option value="" data-en="all">alle</option><option value="q" data-en="Landscape">Querformat</option><option value="h" data-en="Portrait">Hochformat</option></select></label></div>
+  <div class="row">
+    <button id="bLook" title="Nur Bilder, auf denen alle bewerteten Personen die Augen offen haben und zur Kamera schauen" data-en-title="Only photos where everyone who was rated has open eyes and looks at the camera" data-en="👁 Looking at the camera">👁 Blick zur Kamera</button>
+    <button id="bNew" title="Bilder ausblenden, die du schon in der Großansicht angesehen hast" data-en-title="Hide photos you have already opened" data-en="Unseen only">Nur ungesehene</button>
+    <button id="bNoPe" title="Nur Bilder, auf denen kein Gesicht erkannt wurde. Personen von hinten oder weit weg können trotzdem dabei sein." data-en-title="Only photos where no face was found. People seen from behind or far away can still show up." data-en="No faces">Ohne Gesichter</button>
+  </div>
+</div>
+<div class="pop" id="gp" hidden>
+  <div class="row"><button id="bOut" data-en="Show sorted-out photos" title="Unscharfe, dunkle, doppelte Bilder und Screenshots" data-en-title="Blurry and dark photos, duplicates and screenshots">Aussortierte anzeigen</button><button id="bRej" data-en="Show rejected">Abgelehnte anzeigen</button></div>
+  <div class="row"><label><span data-en="Sort">Sortierung</span> <select id="sSort"><option value="t" data-en="Time">Zeit</option><option value="s" data-en="Quality">Qualität</option></select></label>
+    <button id="bTheme" title="Festliches Design an/aus" data-en-title="Festive theme on/off" data-en="🎄 Theme">🎄 Design</button><button data-pv="1" data-en="Edit people …">Personen bearbeiten …</button><button id="bLang">English</button></div>
+</div>
+<main id="main"></main>
+<footer class="hint" id="stat"></footer>
+<div class="hint" id="keys" data-en="Keys in the gallery: &lt;kbd&gt;←&lt;/kbd&gt;&lt;kbd&gt;→&lt;/kbd&gt;&lt;kbd&gt;↑&lt;/kbd&gt;&lt;kbd&gt;↓&lt;/kbd&gt; move the marker · &lt;kbd&gt;Enter&lt;/kbd&gt; open · &lt;kbd&gt;Space&lt;/kbd&gt; shortlist · &lt;kbd&gt;F&lt;/kbd&gt; door · &lt;kbd&gt;X&lt;/kbd&gt; reject · &lt;kbd&gt;N&lt;/kbd&gt; next unseen photo · &lt;kbd&gt;Esc&lt;/kbd&gt; marker off">Tasten in der Galerie: <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> Markierung bewegen · <kbd>Enter</kbd> öffnen · <kbd>Leertaste</kbd> Vorauswahl · <kbd>F</kbd> Türchen · <kbd>X</kbd> ablehnen · <kbd>N</kbd> nächstes ungesehenes Bild · <kbd>Esc</kbd> Markierung aus</div>
+
+<div id="lb" hidden>
+  <div id="lbmain">
+    <div id="lbimgw"><img id="lbimg" alt=""><div id="crop" hidden></div><div id="lbbadge" hidden></div></div>
+    <div id="lbinfo"></div>
+    <div class="row">
+      <button id="lSel" class="pri">☆ In die Vorauswahl</button>
+      <button id="lFin">Zum Türchen machen</button>
+      <button id="lCov">Als Titelbild</button>
+      <button id="lRej">✕ Ablehnen</button>
+      <button id="lPrev">←</button><button id="lNext">→</button>
+      <label><span data-en="Crop">Zuschnitt</span> <select id="lCrop"><option value="a" data-en="Auto (door or cover)">Automatisch (Türchen oder Titelbild)</option><option value="" data-en="off">aus</option><option value="d" data-en="Door (square)">Türchen (quadratisch)</option><option value="q" data-en="Landscape cover + door grid">Titelbild quer + Türchen-Raster</option><option value="h" data-en="Portrait cover + grid (estimated)">Titelbild hoch + Raster (geschätzt)</option></select></label>
+      <button id="lBack" hidden>↩ Zurück zur Galerie-Ansicht</button>
+    </div>
+    <div class="row">
+      <span class="hint" data-en="&lt;kbd&gt;Space&lt;/kbd&gt; shortlist · &lt;kbd&gt;F&lt;/kbd&gt; door · &lt;kbd&gt;T&lt;/kbd&gt; cover · &lt;kbd&gt;Z&lt;/kbd&gt; crop · &lt;kbd&gt;X&lt;/kbd&gt; reject · &lt;kbd&gt;←&lt;/kbd&gt;&lt;kbd&gt;→&lt;/kbd&gt; previous / next photo in the gallery · &lt;kbd&gt;N&lt;/kbd&gt; next unseen · &lt;kbd&gt;B&lt;/kbd&gt; back to the gallery view · &lt;kbd&gt;1&lt;/kbd&gt;–&lt;kbd&gt;4&lt;/kbd&gt; tabs · &lt;kbd&gt;Esc&lt;/kbd&gt; close"><kbd>Leertaste</kbd> Vorauswahl · <kbd>F</kbd> Türchen · <kbd>T</kbd> Titelbild · <kbd>Z</kbd> Zuschnitt · <kbd>X</kbd> ablehnen · <kbd>←</kbd><kbd>→</kbd> voriges / nächstes Bild der Galerie · <kbd>N</kbd> nächstes ungesehenes · <kbd>B</kbd> zurück zur Galerie-Ansicht · <kbd>1</kbd>–<kbd>4</kbd> Reiter · <kbd>Esc</kbd> schließen</span>
+      <span style="flex:1"></span><button id="lClose" data-en="Close">Schließen</button>
+    </div>
+  </div>
+  <div id="lbside">
+    <div id="tabs">
+      <button data-tab="n" data-en="1 Burst &amp;amp; neighbors">1 Serie &amp; Nachbarn</button>
+      <button data-tab="m" data-en="2 Same moment">2 Selber Zeitpunkt</button>
+      <button data-tab="p" data-en="3 Same place">3 Selber Ort</button>
+      <button data-tab="pe" data-en="4 Same person">4 Selbe Person</button>
+    </div>
+    <div id="stripinfo"></div>
+    <div id="strip"></div>
+  </div>
+</div>
+
+<div id="ex" hidden>
+  <div id="exbox">
+    <h1 id="exh"></h1>
+    <p id="exwarn" style="color:var(--bad);font-weight:600" hidden></p>
+    <p class="hint"><span data-en="The command copies the selection as JPEG into the folder">Der Befehl kopiert die Auswahl als JPEG in den Ordner</span> <b id="exdir"></b>. <span data-en="The originals stay unchanged. Open Terminal (Mac) or Command Prompt (Windows, not PowerShell), paste the command and press Enter.">Die Originale bleiben unverändert. Öffne das Terminal (Mac) oder die Eingabeaufforderung (Windows, nicht PowerShell), füge den Befehl ein und drücke Enter.</span></p>
+    <textarea id="excmd" readonly></textarea>
+    <div class="row">
+      <button class="pri" id="exCopy">Befehl kopieren</button>
+      <button id="exAll" hidden data-en="Make every shortlisted photo a door">Ganze Vorauswahl zu Türchen machen</button>
+      <button id="exJson" data-en="Save selection as file">Auswahl als Datei sichern</button>
+      <label><span data-en="Load selection">Auswahl laden</span> <input type="file" id="exLoad" accept=".json"></label>
+      <span style="flex:1"></span><button id="exClose" data-en="Close">Schließen</button>
+    </div>
+    <div class="grid" id="exgrid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))"></div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+<div class="pop" id="mp" hidden><input type="search" id="mpq" placeholder="Suchen …" data-en-placeholder="Search …"><div id="mplist"></div></div>
+<div id="plv" hidden>
+  <div class="row" id="plbar"><h1 data-en="Places">Orte</h1><button class="pri" id="plMerge" data-en="Merge marked">Markierte zusammenlegen</button><span class="hint" id="plHint"></span><span style="flex:1"></span><button id="plClose" data-en="Close">Schließen</button></div>
+  <div id="pllist"></div>
+</div>
+<div id="pv" hidden>
+  <div class="row" id="pvbar"><h1 data-en="People">Personen</h1><button class="pri" id="pvMerge" data-en="Merge marked">Markierte zusammenlegen</button><span class="hint" id="pvHint"></span><span style="flex:1"></span><button id="pvClose" data-en="Close">Schließen</button></div>
+  <div id="pvlist"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+/* Sprache: Deutsch oder Englisch, nach Browser; der Knopf im Einstellungs-Menü merkt sich die Wahl */
+const LANG = (() => { try { const l = localStorage.getItem("advent24-lang"); if (l === "de" || l === "en") return l; } catch (e) {} return /^de\b/i.test(navigator.language || "") ? "de" : "en"; })();
+const L = (de, en) => LANG === "de" ? de : en, LOC = L("de-AT", /^en\b/i.test(navigator.language || "") ? navigator.language : "en-GB");
+document.documentElement.lang = LANG;
+if (LANG === "en") { document.querySelectorAll("[data-en]").forEach(el => { el.innerHTML = el.dataset.en; }); document.querySelectorAll("[data-en-title]").forEach(el => { el.title = el.dataset.enTitle; }); document.querySelectorAll("[data-en-aria]").forEach(el => { el.setAttribute("aria-label", el.dataset.enAria); }); document.querySelectorAll("[data-en-placeholder]").forEach(el => { el.placeholder = el.dataset.enPlaceholder; }); }
+const D = window.DATA || {photos: [], places: [], persons: [], src: "", out: ""};
+const P = D.photos; P.forEach((p, i) => p.i = i);
+const BAD = ["unscharf", "dunkel", "screenshot", "duplikat", "serie"];
+const LBL = {unscharf: L("unscharf", "blurry"), dunkel: L("zu dunkel", "too dark"), screenshot: "Screenshot", duplikat: L("Duplikat", "duplicate"), serie: L("ähnlich (Serie)", "similar (burst)"), import: L("kein Kamerabild", "not from a camera")};
+const KEY = D.key || "advent24-v1", MAX = 24;  /* Demo-Daten bringen einen eigenen Schlüssel mit, damit sie die echte Auswahl nicht überschreiben */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+let S = {sel: [], rej: [], fin: [], cover: "", names: {}, merge: {}, hide: [], seen: [], last: "", pl: {merge: {}, names: {}}};
+try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+if (S.pver !== D.pver) { S.names = {}; S.merge = {}; S.hide = []; S.pver = D.pver; }  /* Personen neu berechnet: alte Namen passen nicht mehr */
+{ const m0 = JSON.stringify(D.merge0 || {}); if (S.m0 !== m0) { Object.keys(D.merge0 || {}).forEach(k => { S.merge[k] = D.merge0[k]; }); S.m0 = m0; } }  /* vorgegebene Zusammenlegungen einmal übernehmen */
+const byName = new Map(P.map(p => [p.f, p]));
+let sel = new Set(S.sel.filter(f => byName.has(f))), rej = new Set(S.rej.filter(f => byName.has(f)));
+const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, seen: [...seen], last: lastSeen});
+let seen = new Set(S.seen || []), lastSeen = S.last || "";
+/* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, höchstens 24 Türchen, nach Datum nummeriert) + ein Titelbild (cover) */
+let fin = new Set((S.fin || []).filter(f => sel.has(f))), cover = byName.has(S.cover) ? S.cover : "";
+const isQuer = p => p.w > p.h;
+let toastTimer = 0;
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2800); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state())); } catch (e) {} }
+
+/* ---------- Personen: Zusammenlegen ---------- */
+P.forEach(p => { p.pe0 = p.pe.slice(); if (!p.lk) p.lk = [0, 0]; });
+const root = id => { let n = 0; while (S.merge[id] !== undefined && n++ < 99) id = S.merge[id]; return id; };
+let EP = [], pick = new Set();
+function applyMerge() {
+  P.forEach(p => p.pe = [...new Set(p.pe0.map(root))]);
+  const m = new Map(), cnt = {};
+  D.persons.forEach(q => { const r = root(q.id); if (!m.has(r)) m.set(r, {id: r, members: [], c: 0}); m.get(r).members.push(q); });
+  P.forEach(p => p.pe.forEach(x => cnt[x] = (cnt[x] || 0) + 1));
+  EP = [...m.values()]; EP.forEach(e => { e.c = cnt[e.id] || 0; e.members.sort((a, b) => a.id === e.id ? -1 : b.id === e.id ? 1 : b.c - a.c); });
+  EP.sort((a, b) => b.c - a.c);
+  if (F.person !== "" && !m.has(+F.person)) F.person = "";
+}
+const hasFace = p => (p.na !== undefined ? p.na : p.nf) > 0;  /* na zählt auch unsichere Treffer */
+const nDoors = c => c + L(" Türchen", c === 1 ? " door" : " doors");
+const allLook = p => p.lk[1] > 0 && p.lk[0] === p.lk[1];
+
+const dt = p => new Date(p.t * 1000);
+const ym = p => dt(p).toISOString().slice(0, 7);
+const fmt = p => dt(p).toLocaleString(LOC, {timeZone: "UTC", weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"});
+const moName = k => new Date(k + "-01T00:00:00Z").toLocaleString(LOC, {timeZone: "UTC", month: "short", year: "numeric"});
+const isOut = p => p.fl.some(f => BAD.includes(f));
+const url = (dir, p) => dir + "/" + p.f.split("/").map(encodeURIComponent).join("/") + ".jpg";
+const pname = id => S.names[id] || L("Person ", "Person ") + (id + 1);
+const gsz = {}; P.forEach(p => gsz[p.g] = (gsz[p.g] || 0) + 1);
+const months = [...new Set(P.map(ym))].sort();
+
+let door = new Map();
+function calcDoors() { door = new Map([...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t).map((p, k) => [p.f, k + 1])); }
+const F = {month: "", place: "", person: "", out: false, only: false, rej: false, look: false, unseen: false, nope: false, fin: false, ori: "", sort: "t"};
+let vis = [], cur = null, tab = "n";
+
+function match(p) {
+  if (F.month && ym(p) !== F.month) return false;
+  if (F.place !== "" && (F.place === "x" ? !p.eo : p.eo || p.ep !== +F.place)) return false;
+  if (F.person !== "" && !p.pe.includes(+F.person)) return false;
+  if (F.look && !allLook(p)) return false;
+  if (F.ori && isQuer(p) !== (F.ori === "q")) return false;
+  if (F.fin) return fin.has(p.f) || p.f === cover;
+  if (F.unseen && seen.has(p.f) && !F.only) return false;
+  if (F.nope && hasFace(p)) return false;
+  if (F.only) return sel.has(p.f);
+  if (sel.has(p.f)) return true;
+  if (!F.out && isOut(p)) return false;
+  if (!F.rej && rej.has(p.f)) return false;
+  return true;
+}
+function tile(p, extra) {
+  const c = ["t"]; if (sel.has(p.f)) c.push("sel"); if (fin.has(p.f)) c.push("fin"); if (rej.has(p.f)) c.push("rej"); else if (isOut(p)) c.push("out"); if (extra) c.push(extra);
+  if (seen.has(p.f)) c.push("seen"); if (extra === undefined && p.f === lastSeen) c.push("last");
+  let b = "";
+  if (p.f === cover) b += '<span class="cv">' + L("Titelbild", "Cover") + '</span>';
+  if (gsz[p.g] > 1) b += "<span>⧉ " + gsz[p.g] + "</span>";
+  if (p.lk[1] > 0) b += "<span" + (allLook(p) ? ' style="color:#9be3b9"' : "") + ' title="' + p.lk[0] + L(" von ", " of ") + p.lk[1] + L(" schauen zur Kamera", " look at the camera") + '">👁 ' + p.lk[0] + "/" + p.lk[1] + "</span>";
+  if (p.ec > 0) b += '<span class="r" title="' + L("Gesichter mit geschlossenen Augen", "Faces with closed eyes") + '">' + L("Augen zu ", "Eyes closed ") + p.ec + "</span>";
+  p.fl.forEach(f => { if (BAD.includes(f)) b += '<span class="r">' + LBL[f] + "</span>"; });
+  if (rej.has(p.f)) b += '<span class="r">' + L("abgelehnt", "rejected") + '</span>';
+  return '<div class="' + c.join(" ") + '" data-i="' + p.i + '" title="' + esc(fmt(p)) + L(" · Qualität ", " · quality ") + p.s + '"><img loading="lazy" src="' + url("thumbs", p) + '" alt=""><div class="star" data-star="1" title="' + (sel.has(p.f) ? L("In der Vorauswahl, anklicken zum Entfernen", "On the shortlist, click to remove") : L("In die Vorauswahl", "Add to the shortlist")) + '">' + "★" + '</div><div class="door" data-door="1" title="' + (fin.has(p.f) ? L("Türchen ", "Door ") + door.get(p.f) + L(", anklicken, um das Türchen zu entfernen", ", click to remove the door") : L("Zum Türchen machen", "Make it a door")) + '">' + (fin.has(p.f) ? door.get(p.f) : "+") + '</div><div class="bd">' + b + "</div></div>";
+}
+function render() {
+  calcDoors();
+  vis = P.filter(match);
+  if (F.sort === "s") vis.sort((a, b) => b.s - a.s || a.t - b.t);
+  let h = "";
+  if (F.sort === "t") {
+    let k = ""; const nm = {}; vis.forEach(p => { const m = ym(p); nm[m] = (nm[m] || 0) + 1; });
+    vis.forEach(p => { const m = ym(p); if (m !== k) { h += (k ? "</div>" : "") + "<h2>" + moName(m) + '<span class="n">' + nm[m] + (nm[m] === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + '</span><span class="hs" data-hs="' + m + '"></span></h2><div class=\'grid\'>'; k = m; } h += tile(p); });
+    if (k) h += "</div>";
+  } else h = '<h2>' + L("Nach Qualität", "By quality") + '<span class="n">' + vis.length + (vis.length === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + "</span></h2><div class='grid'>" + vis.map(p => tile(p)).join("") + "</div>";
+  $("main").innerHTML = h || "<p class='hint'>" + (!D.photos.length ? (window.DATA
+    ? L("Keine Bilder gefunden. Prüfe PHOTOS und START und starte process.py, arc.py und build.py noch einmal (siehe README).", "No photos found. Check PHOTOS and START, then run process.py, arc.py and build.py again (see README).")
+    : L("Noch keine Daten. Starte zuerst process.py, arc.py und build.py (siehe README) und lade die Seite dann neu.", "No data yet. Run process.py, arc.py and build.py first (see README), then reload this page."))
+    : L("Keine Bilder für diesen Filter.", "No photos for this filter.")) + "</p>";
+  $("first").hidden = fin.size > 0 || !D.photos.length;
+  markGc();
+  head();
+}
+/* Einzeilige Chip-Zeilen: Inhalt ersetzen, ohne die Scroll-Position zu verlieren */
+function setRow(id, html) { const el = $(id), x = el.scrollLeft; el.innerHTML = html; el.scrollLeft = x; }
+/* Einzeilige Zeilen: seitlich wischen oder scrollen. Passt nicht alles hinein, bleibt rechts der Knopf "Alle" stehen (Liste mit Suche). */
+function openMore(id, btn) {
+  const mp = $("mp");
+  mp.dataset.row = id; $("mpq").value = ""; fillMore();
+  const r = btn.getBoundingClientRect();
+  mp.style.top = (r.bottom + 6) + "px"; mp.style.right = "auto"; mp.style.left = Math.max(8, Math.min(r.left, innerWidth - 374)) + "px"; mp.hidden = false; $("mpq").focus();
+}
+function fillMore() {
+  const q = $("mpq").value.trim().toLowerCase();
+  $("mplist").innerHTML = [...$($("mp").dataset.row).querySelectorAll(".chip")].filter(c => !q || c.textContent.toLowerCase().includes(q)).map(c => c.outerHTML).join("") || '<span class="hint">' + L("Nichts gefunden.", "Nothing found.") + "</span>";
+}
+function head() {
+  calcDoors();
+  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : "+"; });
+  const n = fin.size, viewAll = !F.only && !F.fin;
+  $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (cover ? L(" +Titel", " +cover") : "");
+  $("bAll").className = viewAll ? "on" : ""; $("bFin").title = L("Nur die " + MAX + " Türchen und das Titelbild zeigen. Titelbild: " + (cover ? "gewählt" : "fehlt noch"), "Show only the " + MAX + " doors and the cover. Cover: " + (cover ? "chosen" : "missing"));
+  const per = {}, pre = {}; fin.forEach(f => { const k = ym(byName.get(f)); per[k] = (per[k] || 0) + 1; }); sel.forEach(f => { const k = ym(byName.get(f)); pre[k] = (pre[k] || 0) + 1; });
+  $("months").innerHTML = '<button class="mo' + (F.month === "" ? " on" : "") + '" data-m="">' + L("Alle<small>Monate</small>", "All<small>months</small>") + '</button>' +
+    months.map(k => '<button class="mo' + (F.month === k ? " on" : "") + '" data-m="' + k + '" title="' + (per[k] || 0) + L(" Türchen, ", " doors, ") + (pre[k] || 0) + L(" in der Vorauswahl", " on the shortlist") + '"><b class="' + ((per[k] || 0) >= 2 ? "full" : "") + '"><i class="dr"></i>' + (per[k] || 0) + '</b><span class="st">★ ' + (pre[k] || 0) + "</span><small>" + moName(k) + "</small></button>").join("");
+  setRow("persons", D.persons.length ? '<span class="hint">' + L("Personen:", "People:") + '</span>' + '<button class="chip nope' + (F.nope ? " on" : "") + '" data-nope="1" title="' + L("Nur Bilder, auf denen kein Gesicht erkannt wurde", "Only photos where no face was found") + '"><span>' + L("Ohne Gesichter", "No faces") + "</span><i>" + P.filter(p => !hasFace(p) && (F.out || sel.has(p.f) || !isOut(p))).length + "</i></button>" + EP.filter(q => !S.hide.includes(q.id)).map(q => '<button class="chip' + (F.person === String(q.id) ? " on" : "") + '" data-p="' + q.id + '"><img src="faces/p' + q.id + '_0.jpg" alt=""><span>' + esc(pname(q.id)) + "</span><i>" + q.c + "</i></button>").join("") : "");
+  $("pvBtn").parentNode.hidden = !D.persons.length;
+  const shown = EPL.filter(e => !e.other);
+  setRow("places", EPL.length > 1 ? '<span class="hint">' + L("Orte:", "Places:") + '</span>' + shown.map(e => '<button class="chip' + (F.place === String(e.id) ? " on" : "") + '" data-o="' + e.id + '">' + (e.best ? '<img loading="lazy" src="' + url("thumbs", e.best) + '" alt="">' : "") + "<span>" + esc(plabel(e.id)) + "</span><i>" + e.c + "</i></button>").join("") +
+    (OTHER.length ? '<button class="chip nope' + (F.place === "x" ? " on" : "") + '" data-o="x" title="' + OTHER.length + L(" Orte mit weniger als ", " places with fewer than ") + OTHER_MIN + L(" Bildern", " photos") + '"><span>' + L("Sonstige", "Other") + "</span><i>" + OTHER.reduce((a, e) => a + e.c, 0) + "</i></button>" : "") : "");
+  $("plBtn").parentNode.hidden = EPL.length < 2;
+  document.querySelectorAll("[data-hs]").forEach(el => { const c = per[el.dataset.hs] || 0, v = pre[el.dataset.hs] || 0; el.textContent = v || c ? v + L(" ★ Vorauswahl · ", " ★ shortlist · ") + nDoors(c) : ""; });
+  const act = [];
+  if (F.place !== "") act.push(["place", L("Ort: ", "Place: ") + plabel(F.place === "x" ? "x" : +F.place)]);
+  if (F.ori) act.push(["ori", F.ori === "q" ? L("Querformat", "Landscape") : L("Hochformat", "Portrait")]);
+  if (F.look) act.push(["look", L("Blick zur Kamera", "Looking at the camera")]);
+  if (F.unseen) act.push(["unseen", L("Nur ungesehene", "Unseen only")]);
+  if (F.nope) act.push(["nope", L("Ohne Gesichter", "No faces")]);
+  if (F.person !== "") act.push(["person", L("Person: ", "Person: ") + pname(+F.person)]);
+  if (F.out) act.push(["out", L("mit Aussortierten", "with sorted-out photos")]);
+  if (F.rej) act.push(["rej", L("mit Abgelehnten", "with rejected")]);
+  if (F.sort === "s") act.push(["sort", L("nach Qualität", "by quality")]);
+  $("active").innerHTML = act.map(a => '<button class="af" data-af="' + a[0] + '" title="' + L("Filter entfernen", "Remove filter") + '">' + esc(a[1]) + " ✕</button>").join("");
+  const nf = act.filter(a => ["place", "ori", "look", "unseen", "nope"].includes(a[0])).length;
+  $("bFilter").textContent = "Filter" + (nf ? " (" + nf + ")" : "") + " ▾"; $("bFilter").className = nf ? "on" : "";
+  $("sPlace").value = F.place; $("sOri").value = F.ori; $("sSort").value = F.sort;
+  const cand = P.filter(p => !isOut(p)).length;
+  $("stat").textContent = L(vis.length + " angezeigt · " + P.length + " Bilder · " + cand + " Kandidaten · " + (P.length - cand) + " automatisch aussortiert · Stand " + (D.gen || "") + " · " + seen.size + " gesehen ", vis.length + " shown · " + P.length + " photos · " + cand + " candidates · " + (P.length - cand) + " sorted out automatically · data from " + (D.gen || "") + " · " + seen.size + " seen ");
+  if (seen.size) { const u = document.createElement("u"); u.textContent = L("(zurücksetzen)", "(reset)"); u.dataset.resetseen = "1"; $("stat").appendChild(u); }
+  writeHash();
+  $("bOnly").className = F.only ? "on" : ""; $("bOut").className = F.out ? "on" : ""; $("bRej").className = F.rej ? "on" : ""; $("bFin").className = F.fin ? "on" : ""; $("bLook").className = F.look ? "on" : ""; $("bNew").className = F.unseen ? "on" : ""; $("bNoPe").className = F.nope ? "on" : "";
+}
+function refreshTiles(p) {
+  document.querySelectorAll('.t[data-i="' + p.i + '"]').forEach(el => {
+    el.classList.toggle("sel", sel.has(p.f)); el.classList.toggle("fin", fin.has(p.f)); el.classList.toggle("rej", rej.has(p.f));
+    const s = el.querySelector(".star"); if (s) s.textContent = "★";
+  });
+}
+function changed(p) { save(); calcDoors(); refreshTiles(p); head(); if (cur) lbInfo(); if (!$("ex").hidden) openEx(); }
+function lostRole(p) { const t = [fin.has(p.f) ? L("aus den Türchen", "from the doors") : "", cover === p.f ? L("als Titelbild", "from the cover") : ""].filter(Boolean); if (t.length) toast(L("Auch ", "Also removed ") + t.join(L(" und ", " and ")) + L(" entfernt.", ".")); }
+function toggleSel(p) { if (sel.has(p.f)) { lostRole(p); sel.delete(p.f); fin.delete(p.f); if (cover === p.f) cover = ""; } else { sel.add(p.f); rej.delete(p.f); } changed(p); }
+function toggleFin(p) {
+  if (fin.has(p.f)) fin.delete(p.f);
+  else if (fin.size >= MAX) { toast(L("Alle " + MAX + " Türchen sind vergeben. Entferne zuerst eines.", "All " + MAX + " doors are taken. Remove one first.")); return; }
+  else { fin.add(p.f); sel.add(p.f); rej.delete(p.f); }
+  changed(p);
+}
+function toggleCover(p) { if (cover === p.f) cover = ""; else { if (cover) toast(L("Das bisherige Titelbild ist ersetzt.", "The previous cover is replaced.")); cover = p.f; sel.add(p.f); rej.delete(p.f); } changed(p); if (cur) lbStrip(); else render(); }
+function toggleRej(p) { if (rej.has(p.f)) rej.delete(p.f); else { lostRole(p); rej.add(p.f); sel.delete(p.f); fin.delete(p.f); if (cover === p.f) cover = ""; } changed(p); }
+
+/* ---------- Position merken (URL-Anker): Filter, Scroll-Stelle und offenes Bild überleben ein Neuladen ---------- */
+let anchor = "", scrollTimer = 0;
+function writeHash() {
+  const q = new URLSearchParams();
+  if (F.month) q.set("m", F.month); if (F.place !== "") q.set("o", F.place); if (F.person !== "") q.set("p", F.person);
+  ["out", "only", "rej", "look", "unseen", "nope", "fin"].forEach(k => { if (F[k]) q.set(k, "1"); });
+  if (F.ori) q.set("f", F.ori);
+  if (F.sort !== "t") q.set("s", F.sort);
+  if (cur) q.set("bild", cur.f); else if (anchor) q.set("bei", anchor);
+  const h = "#" + q.toString();
+  if (h === (location.hash || "#")) return;
+  try { history.replaceState(null, "", h); } catch (e) { try { location.replace(h); } catch (e2) {} }
+}
+function readHash() {
+  const q = new URLSearchParams((location.hash || "").slice(1));
+  F.month = q.get("m") || ""; F.place = q.get("o") || ""; F.person = q.get("p") || "";
+  ["out", "only", "rej", "look", "unseen", "nope", "fin"].forEach(k => F[k] = q.get(k) === "1"); F.ori = ["q", "h"].includes(q.get("f")) ? q.get("f") : ""; F.sort = q.get("s") === "s" ? "s" : "t";
+  if (F.month && !months.includes(F.month)) F.month = "";
+  if (F.place !== "" && F.place !== "x" && !D.places[+F.place]) F.place = "";
+  anchor = q.get("bei") || ""; return q.get("bild") || "";
+}
+function topTile() {
+  const ts = document.querySelectorAll("#main .t"); if (!ts.length) return "";
+  const y = $("hd").getBoundingClientRect().bottom; let lo = 0, hi = ts.length - 1;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (ts[mid].getBoundingClientRect().bottom > y) hi = mid; else lo = mid + 1; }
+  return P[+ts[lo].dataset.i].f;
+}
+function scrollToFile(f, onlyIfHidden) {
+  const p = byName.get(f), el = p && document.querySelector('#main .t[data-i="' + p.i + '"]'); if (!el) return;
+  const r = el.getBoundingClientRect(), hb = $("hd").offsetHeight;
+  if (onlyIfHidden && r.top >= hb && r.bottom <= window.innerHeight) return;
+  window.scrollTo(0, Math.max(0, r.top + window.scrollY - hb - 6));
+}
+window.addEventListener("scroll", () => { clearTimeout(scrollTimer); scrollTimer = setTimeout(() => { if (!cur && $("pv").hidden && $("ex").hidden) { anchor = window.scrollY > 10 ? topTile() : ""; writeHash(); } }, 200); });
+
+/* ---------- Tastatur in der Galerie: Markierung (gc) bewegen, nächstes ungesehenes Bild ---------- */
+let gc = null;
+function markGc() {
+  document.querySelectorAll("#main .t.kc").forEach(el => el.classList.remove("kc"));
+  const el = gc && document.querySelector('#main .t[data-i="' + gc.i + '"]'); if (el) el.classList.add("kc");
+}
+function moveGc(dx, dy) {
+  if (!vis.length) return;
+  if (!gc || !vis.includes(gc)) { const f = topTile(); gc = (f && byName.get(f)) || vis[0]; }
+  else if (dx) { const k = vis.indexOf(gc) + dx; if (k >= 0 && k < vis.length) gc = vis[k]; }
+  else {
+    const els = [...document.querySelectorAll("#main .t")], i = els.findIndex(el => +el.dataset.i === gc.i);
+    if (i >= 0) {
+      const r0 = els[i].getBoundingClientRect(); let best = null, rowTop = null;
+      for (let j = i + dy; j >= 0 && j < els.length; j += dy) {
+        const r = els[j].getBoundingClientRect(); if (Math.abs(r.top - r0.top) < 5) continue;
+        if (rowTop === null) rowTop = r.top; if (Math.abs(r.top - rowTop) > 5) break;
+        const dist = Math.abs(r.left - r0.left); if (!best || dist < best.d) best = {d: dist, el: els[j]};
+      }
+      if (best) gc = P[+best.el.dataset.i];
+    }
+  }
+  markGc(); scrollToFile(gc.f, true);
+}
+function nextUnseen() {
+  const from = cur || gc, start = from && vis.includes(from) ? vis.indexOf(from) + 1 : 0;
+  const p = vis.slice(start).find(q => !seen.has(q.f)) || vis.slice(0, start).find(q => !seen.has(q.f));
+  if (p) openLb(p); else toast(L("In dieser Ansicht hast du alle Bilder schon gesehen.", "You have seen every photo in this view."));
+}
+
+/* ---------- Detailansicht ---------- */
+function related(p) {
+  if (tab === "n") { const s = new Set(); P.forEach(q => { if (q.g === p.g) s.add(q.i); }); for (let i = Math.max(0, p.i - 8); i <= Math.min(P.length - 1, p.i + 8); i++) s.add(i); return [...s].sort((a, b) => a - b).map(i => P[i]); }
+  if (tab === "m") return P.filter(q => q.m === p.m);
+  if (tab === "p") return p.ep < 0 ? [] : P.filter(q => q.ep === p.ep);
+  return p.pe.length ? P.filter(q => q.pe.some(x => p.pe.includes(x))) : [];
+}
+function lbInfo() {
+  const p = cur, parts = ["<b>" + esc(fmt(p)) + "</b>"];
+  if (p.ep >= 0) parts.push(L("Ort: ", "Place: ") + esc(plabel(p.ep)));
+  parts.push((isQuer(p) ? L("Querformat", "Landscape") : L("Hochformat", "Portrait")) + " " + p.w + "×" + p.h);
+  parts.push(L("Qualität ", "Quality ") + p.s + "/100");
+  if (gsz[p.g] > 1) parts.push(L("Serie mit " + gsz[p.g] + " Bildern", "Burst of " + gsz[p.g] + " photos"));
+  if (p.lk[1] > 0) parts.push("👁 " + p.lk[0] + L(" von ", " of ") + p.lk[1] + L(" schauen zur Kamera", " look at the camera") + (p.ec > 0 ? ', <span style="color:var(--bad)">' + p.ec + L(" mit Augen zu", " with eyes closed") + "</span>" : ""));
+  if (p.pe.length) parts.push(p.pe.map(pname).map(esc).join(", "));
+  const fl = p.fl.map(f => LBL[f]).concat(rej.has(p.f) ? [L("abgelehnt", "rejected")] : []); if (fl.length) parts.push('<span style="color:var(--bad)">' + fl.join(", ") + "</span>");
+  parts.push(esc(p.f));
+  { const inVis = vis.includes(p), list = inVis ? vis : P; parts.unshift('<b style="color:var(--ac)">' + L("Bild ", "Photo ") + (list.indexOf(p) + 1) + L(" von ", " of ") + list.length + "</b> " + (inVis ? L("in der Galerie-Ansicht", "in the gallery view") : L("(nicht in der Galerie-Ansicht. Die Pfeile blättern nach Zeit durch alle Bilder)", "(not in the gallery view. The arrows go through all photos by time)"))); }
+  $("lbinfo").innerHTML = parts.join(" · ");
+  const isSel = sel.has(p.f), isFin = fin.has(p.f), isCov = cover === p.f, isRej = rej.has(p.f), bd = $("lbbadge");
+  $("lSel").textContent = isSel ? L("Aus Vorauswahl entfernen", "Remove from shortlist") : L("☆ In die Vorauswahl", "☆ Add to shortlist"); $("lSel").className = isSel ? "" : "pri";
+  $("lFin").textContent = isFin ? L("Türchen entfernen", "Remove door") : L("Zum Türchen machen", "Make it a door"); $("lFin").className = isSel && !isFin ? "pri" : "";
+  $("lCov").textContent = isCov ? L("Titelbild aufheben", "Remove cover") : L("Als Titelbild", "Use as cover");
+  $("lRej").textContent = isRej ? L("Ablehnung aufheben", "Undo reject") : L("✕ Ablehnen", "✕ Reject");
+  $("lbimgw").className = isSel ? "sel" : isRej ? "rej" : "";
+  bd.hidden = !(isSel || isRej); bd.className = isRej ? "no" : "";
+  bd.textContent = isRej ? L("✕ Abgelehnt", "✕ Rejected") : (isFin ? L("★ Türchen ", "★ Door ") + door.get(p.f) : L("★ Vorauswahl", "★ Shortlist")) + (isCov ? L(" · Titelbild", " · cover") : "");
+  drawCrop();
+  $("lBack").hidden = !(lastVis && !vis.includes(p));
+  if (lastVis && !vis.includes(p)) $("lBack").textContent = L("↩ Zurück zur Galerie-Ansicht (Bild ", "↩ Back to the gallery view (photo ") + (vis.indexOf(lastVis) + 1) + ")";
+}
+function lbStrip() {
+  const CAP = 300; let r = related(cur); const total = r.length;
+  if (r.length > CAP) { const k = r.findIndex(q => q.i >= cur.i), a = Math.max(0, Math.min(k - CAP / 2, r.length - CAP)); r = r.slice(a, a + CAP); }
+  const note = {n: L("Gleiche Serie und die Bilder direkt davor und danach.", "Same burst and the photos right before and after."), m: L("Bilder vom selben Zeitpunkt (Pausen unter 2 Stunden).", "Photos from the same moment (gaps under 2 hours)."), p: cur.p < 0 ? L("Dieses Bild hat keine GPS-Daten.", "This photo has no GPS data.") : L("Bilder vom selben Ort: ", "Photos from the same place: ") + D.places[cur.p].n + ".", pe: cur.pe.length ? L("Bilder mit denselben Personen.", "Photos with the same people.") : L("Keine bekannte Person auf diesem Bild.", "No known person in this photo.")}[tab];
+  $("stripinfo").textContent = note + " " + total + L(" Bilder", " photos") + (total > r.length ? " (" + r.length + L(" angezeigt)", " shown)") : "") + L(", einschließlich der aussortierten Bilder.", ", including sorted-out ones.");
+  $("strip").innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
+  document.querySelectorAll("#tabs button").forEach(b => b.className = b.dataset.tab === tab ? "on" : "");
+  const st = $("strip"), c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
+}
+/* ---------- Zuschnitt-Vorschau. Maße aus dem BIPA/CEWE-Projekt "Adventskalender mit Türchenbildern & kinder, Querformat" abgelesen:
+   Titel 30,5 x 21 cm, 6 x 4 quadratische Türchen (je ca. 4 cm). Hochformat-Raster ist nur gedreht geschätzt. Zuschnitt ist mittig; im Editor lässt er sich verschieben. ---------- */
+const CROPS = {d: {a: 1}, q: {a: 30.5 / 21, nx: 6, ny: 4, x0: .031, sx: .1612, w: .130, y0: .052, sy: .2343, h: .191}, h: {a: 21 / 30.5, nx: 4, ny: 6, x0: .052, sx: .2343, w: .191, y0: .031, sy: .1612, h: .130}};
+let cropMode = CROPS[S.crop] || S.crop === "" ? S.crop : "a";  /* a = square for doors, grid for the cover */
+const effCrop = p => cropMode !== "a" ? cropMode : cover === p.f ? (isQuer(p) ? "q" : "h") : fin.has(p.f) ? "d" : "";
+function drawCrop() {
+  const el = $("crop"), c = cur && CROPS[effCrop(cur)], img = $("lbimg");
+  if (!c || !cur || !img.clientWidth) { el.hidden = true; return; }
+  const W = img.clientWidth, H = img.clientHeight, wr = $("lbimgw").getBoundingClientRect(), ir = img.getBoundingClientRect();
+  let w = W, h = W / c.a; if (h > H) { h = H; w = H * c.a; }
+  el.style.left = (ir.left - wr.left + (W - w) / 2) + "px"; el.style.top = (ir.top - wr.top + (H - h) / 2) + "px"; el.style.width = w + "px"; el.style.height = h + "px";
+  let g = "";
+  if (c.nx) for (let j = 0; j < c.ny; j++) for (let i = 0; i < c.nx; i++) g += '<i style="left:' + (c.x0 + i * c.sx) * 100 + "%;top:" + (c.y0 + j * c.sy) * 100 + "%;width:" + c.w * 100 + "%;height:" + c.h * 100 + '%"></i>';
+  el.innerHTML = g; el.hidden = false;
+}
+function setCrop(m) { cropMode = m; S.crop = m; $("lCrop").value = m; save(); drawCrop(); }
+let lastVis = null;
+function backToVis() { if (cur && lastVis && !vis.includes(cur)) openLb(lastVis); }
+function openLb(p) { cur = p; if (vis.includes(p)) lastVis = p; seen.add(p.f); lastSeen = p.f; save(); $("lb").hidden = false; $("lbimg").src = url("prev", p); lbInfo(); lbStrip(); writeHash(); }
+function closeLb() { const last = cur ? cur.f : ""; $("lb").hidden = true; if (cur && vis.includes(cur)) gc = cur; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); if (last) anchor = last; render(); if (last) scrollToFile(last, true); }
+function step(d) { if (!cur) return; let list = vis.includes(cur) ? vis : P; const k = list.indexOf(cur) + d; if (k >= 0 && k < list.length) openLb(list[k]); }
+
+/* ---------- Export ---------- */
+/* Windows (cmd) takes plain double quotes; the Mac and Linux shells also need $ and ` escaped */
+const WIN = D.sep === "\\";
+function shq(s) { return '"' + (WIN ? s : s.replace(/(["\\$`])/g, "\\$1")) + '"'; }
+function expName(p, prefix) { return prefix + "_" + dt(p).toISOString().slice(0, 10) + "_" + p.f.split("/").pop().replace(/\.[^.]+$/, "").replace(/[^\w-]+/g, "_") + ".jpg"; }
+function openEx() {
+  const list = [...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t), cov = cover ? byName.get(cover) : null, dir = D.out + (D.sep || "/") + "calendar-photos";
+  $("exh").textContent = "Export: " + list.length + L(" von ", " of ") + MAX + L(" Türchen", " doors") + (list.length === MAX ? " ✓" : "") + L(" · Titelbild ", " · cover ") + (cov ? "✓ (" + (isQuer(cov) ? L("Querformat", "landscape") : L("Hochformat", "portrait")) + ")" : L("fehlt", "missing")) + L(" · Vorauswahl ", " · shortlist ") + sel.size;
+  $("exdir").textContent = dir;
+  const miss = [list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
+  if (D.key) miss.push(L("Das ist die Demo. Der Befehl zeigt nur, wie er aussieht, und wird nicht ausgeführt.", "This is the demo. The command only shows what it looks like and does not run."));
+  $("exwarn").textContent = miss.join(" "); $("exwarn").hidden = !miss.length;
+  const args = (cov ? [shq(expName(cov, "00_cover") + "=" + cov.f)] : []).concat(list.map((p, k) => shq(expName(p, String(k + 1).padStart(2, "0")) + "=" + p.f)));
+  $("excmd").value = list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
+  $("exAll").hidden = !(sel.size > 0 && sel.size <= MAX && fin.size < sel.size);
+  $("exgrid").innerHTML = (cov ? tile(cov, "x") : "") + list.map(p => tile(p, "x")).join("");
+  $("ex").hidden = false;
+}
+
+/* ---------- Personenübersicht ---------- */
+function renderPv() {
+  $("pvHint").textContent = pick.size + L(" markiert. Klicke eine Karte an, um sie zu markieren, und dann auf „Markierte zusammenlegen“. Alles bleibt nur in diesem Browser gespeichert.", " marked. Click a card to mark it, then “Merge marked”. Everything stays in this browser only.");
+  $("pvlist").innerHTML = EP.map(e => {
+    const hid = S.hide.includes(e.id);
+    const imgs = e.members.map(q => { let h = ""; for (let k = 0; k < (q.n || 0); k++) h += '<img loading="lazy" src="faces/p' + q.id + "_" + k + '.jpg" alt="">'; return h; }).join("");
+    return '<div class="pc' + (pick.has(e.id) ? " pick" : "") + (hid ? " hid" : "") + '" data-pc="' + e.id + '"><div class="row"><input type="text" data-pn="' + e.id + '" placeholder="Person ' + (e.id + 1) + '" value="' + esc(S.names[e.id] || "") + '"><b>' + e.c + L(" Bilder", " photos") + "</b>" +
+      (e.members.length > 1 ? '<span class="hint">' + e.members.length + L(" Gruppen zusammengelegt", " groups merged") + '</span><button data-split="' + e.id + '">' + L("Trennen", "Split") + '</button>' : "") +
+      '<button data-hide="' + e.id + '">' + (hid ? L("Einblenden", "Show") : L("Ausblenden", "Hide")) + '</button><button data-show="' + e.id + '">' + L("Bilder zeigen", "Show photos") + '</button></div><div class="fs">' + imgs + "</div></div>";
+  }).join("");
+}
+function pvChanged() { save(); applyMerge(); renderPv(); }
+function closePv() { $("pv").hidden = true; render(); }
+$("pvClose").onclick = closePv;
+$("pvMerge").onclick = () => {
+  if (pick.size < 2) { $("pvHint").textContent = L("Markiere zuerst mindestens zwei Karten.", "Mark at least two cards first."); return; }
+  const ids = EP.filter(e => pick.has(e.id)).map(e => e.id), target = ids.find(id => S.names[id]) !== undefined ? ids.find(id => S.names[id]) : ids[0];
+  ids.forEach(id => { if (id !== target) { S.merge[id] = target; delete S.names[id]; } });
+  pick.clear(); pvChanged();
+};
+document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.pn !== undefined) { const id = +t.dataset.pn; if (t.value.trim()) S.names[id] = t.value.trim(); else delete S.names[id]; save(); } });
+
+/* ---------- Orte: umbenennen, zusammenlegen, kleine Orte in "Sonstige". Gespeichert nach Ortsnamen, damit es einen neuen build.py-Lauf übersteht. ---------- */
+const OTHER_MIN = 5, PN = D.places.map(q => q.n), PIDX = new Map(PN.map((n, i) => [n, i]));
+let EPL = [], OTHER = [], ppick = new Set();
+function proot(i) { let n = 0; while (PIDX.has(S.pl.merge[PN[i]]) && n++ < 99) i = PIDX.get(S.pl.merge[PN[i]]); return i; }
+function plabel(i) { return i === "x" ? L("Sonstige", "Other") : (S.pl.names[PN[i]] || PN[i]); }
+function applyPlaces() {
+  const m = new Map();
+  D.places.forEach((q, i) => { const r = proot(i); if (!m.has(r)) m.set(r, {id: r, members: [], c: 0, best: null}); m.get(r).members.push(i); });
+  P.forEach(p => { p.ep = p.p >= 0 && D.places[p.p] ? proot(p.p) : -1; const e = m.get(p.ep); if (e) { e.c++; if (!e.best || p.s > e.best.s) e.best = p; } });
+  EPL = [...m.values()].filter(e => e.c > 0).sort((a, b) => b.c - a.c);
+  const small = EPL.filter(e => e.c < OTHER_MIN && e.members.length === 1 && !S.pl.names[PN[e.id]]);
+  OTHER = small.length > 1 ? small : [];
+  const os = new Set(OTHER.map(e => e.id));
+  EPL.forEach(e => e.other = os.has(e.id));
+  P.forEach(p => p.eo = os.has(p.ep));
+  if (F.place === "x" ? !OTHER.length : F.place !== "" && !EPL.some(e => String(e.id) === F.place && !e.other)) F.place = "";
+  $("sPlace").innerHTML = '<option value="">' + L("alle Orte", "all places") + '</option>' + EPL.filter(e => !e.other).map(e => '<option value="' + e.id + '">' + esc(plabel(e.id)) + " (" + e.c + ")</option>").join("") + (OTHER.length ? '<option value="x">' + L("Sonstige", "Other") + "</option>" : "");
+  $("sPlace").value = F.place;
+}
+function renderPlv() {
+  $("plHint").textContent = ppick.size + L(" markiert. Klicke eine Karte an, um sie zu markieren, und dann auf „Markierte zusammenlegen“. Orte mit weniger als ", " marked. Click a card to mark it, then “Merge marked”. Places with fewer than ") + OTHER_MIN + L(" Bildern stehen unter „Sonstige“, bis du sie benennst oder zusammenlegst.", " photos sit under “Other” until you name or merge them.");
+  $("pllist").innerHTML = EPL.map(e => {
+    const imgs = P.filter(p => p.ep === e.id && !isOut(p)).sort((a, b) => b.s - a.s).slice(0, 6).map(p => '<img loading="lazy" src="' + url("thumbs", p) + '" alt="">').join("");
+    return '<div class="pc' + (ppick.has(e.id) ? " pick" : "") + '" data-plc="' + e.id + '"><div class="row"><input type="text" data-pln="' + e.id + '" placeholder="' + esc(PN[e.id]) + '" value="' + esc(plabel(e.id)) + '"><b>' + e.c + L(" Bilder", " photos") + "</b>" +
+      (e.other ? '<span class="hint">' + L("unter „Sonstige“", "under “Other”") + "</span>" : "") +
+      (e.members.length > 1 ? '<span class="hint">' + e.members.map(i => esc(PN[i])).join(" + ") + '</span><button data-plsplit="' + e.id + '">' + L("Trennen", "Split") + '</button>' : "") +
+      '<button data-plshow="' + e.id + '">' + L("Bilder zeigen", "Show photos") + '</button></div><div class="fs">' + imgs + "</div></div>";
+  }).join("");
+}
+function plvChanged() { save(); applyPlaces(); renderPlv(); }
+function closePlv() { $("plv").hidden = true; render(); }
+$("plClose").onclick = closePlv;
+$("plMerge").onclick = () => {
+  if (ppick.size < 2) { $("plHint").textContent = L("Markiere zuerst mindestens zwei Karten.", "Mark at least two cards first."); return; }
+  const ids = EPL.filter(e => ppick.has(e.id)).map(e => e.id), named = ids.find(id => S.pl.names[PN[id]]), target = named !== undefined ? named : ids[0];
+  ids.forEach(id => { if (id !== target) { S.pl.merge[PN[id]] = PN[target]; delete S.pl.names[PN[id]]; } });
+  ppick.clear(); plvChanged();
+};
+document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.pln !== undefined) { const k = PN[+t.dataset.pln], v = t.value.trim(); if (v && v !== k) S.pl.names[k] = v; else delete S.pl.names[k]; plvChanged(); } });
+$("mpq").oninput = fillMore;
+document.querySelectorAll(".scrollrow").forEach(el => el.addEventListener("wheel", e => { if (!e.deltaX && el.scrollWidth > el.clientWidth) { el.scrollLeft += e.deltaY; e.preventDefault(); } }, {passive: false}));  /* Mausrad scrollt die Zeile seitlich */
+
+/* ---------- Ereignisse ---------- */
+document.addEventListener("click", e => { const b = e.target.closest("button"); if (b && b.blur) b.blur(); });  /* sonst löst die Leertaste den zuletzt geklickten Knopf noch einmal aus */
+function closePops() { $("fp").hidden = true; $("gp").hidden = true; $("mp").hidden = true; }
+document.addEventListener("click", e => {
+  const pb = e.target.closest("[data-pop]");
+  if (pb) { const el = $(pb.dataset.pop), open = el.hidden; closePops(); if (open) { el.style.top = ($("hd").getBoundingClientRect().bottom + 6) + "px"; el.hidden = false; } return; }
+  const mb = e.target.closest("[data-more]");
+  if (mb) { const open = $("mp").hidden || $("mp").dataset.row !== mb.dataset.more; closePops(); if (open) openMore(mb.dataset.more, mb); return; }
+  if (!e.target.closest(".pop")) { const wasOpen = !$("fp").hidden || !$("gp").hidden || !$("mp").hidden; closePops(); if (wasOpen && e.target.closest("#main")) return; } else if (e.target.closest("[data-pv]") || e.target.closest("#mp .chip")) closePops();
+  const af = e.target.closest("[data-af]");
+  if (af) { const k = af.dataset.af; if (k === "sort") F.sort = "t"; else if (["place", "person", "ori"].includes(k)) F[k] = ""; else F[k] = false; render(); return; }
+  if (e.target.closest("[data-resetseen]")) { seen.clear(); lastSeen = ""; save(); render(); return; }
+  if (e.target.closest("[data-pv]")) { pick.clear(); renderPv(); $("pv").hidden = false; return; }
+  if (e.target.closest("[data-plv]")) { ppick.clear(); renderPlv(); $("plv").hidden = false; return; }
+  if (!$("plv").hidden) {
+    const q = a => e.target.closest("[" + a + "]");
+    if (q("data-pln")) return;
+    if (q("data-plsplit")) { const id = +q("data-plsplit").dataset.plsplit; PN.forEach((n, i) => { if (i !== id && proot(i) === id) delete S.pl.merge[n]; }); plvChanged(); return; }
+    if (q("data-plshow")) { F.place = EPL.find(x => x.id === +q("data-plshow").dataset.plshow).other ? "x" : q("data-plshow").dataset.plshow; closePlv(); return; }
+    if (q("data-plc")) { const id = +q("data-plc").dataset.plc; if (ppick.has(id)) ppick.delete(id); else ppick.add(id); renderPlv(); }
+    return;
+  }
+  if (!$("pv").hidden) {
+    const q = a => e.target.closest("[" + a + "]");
+    if (q("data-pn")) return;
+    if (q("data-split")) { const id = +q("data-split").dataset.split; D.persons.forEach(x => { if (x.id !== id && root(x.id) === id) delete S.merge[x.id]; }); pvChanged(); return; }
+    if (q("data-hide")) { const id = +q("data-hide").dataset.hide; S.hide = S.hide.includes(id) ? S.hide.filter(x => x !== id) : S.hide.concat(id); pvChanged(); return; }
+    if (q("data-show")) { F.person = q("data-show").dataset.show; closePv(); return; }
+    if (q("data-pc")) { const id = +q("data-pc").dataset.pc; if (pick.has(id)) pick.delete(id); else pick.add(id); renderPv(); }
+    return;
+  }
+  const t = e.target.closest(".t");
+  if (t) { const p = P[+t.dataset.i]; if (e.target.closest("[data-star]")) toggleSel(p); else if (e.target.closest("[data-door]")) toggleFin(p); else { $("ex").hidden = true; openLb(p); } return; }
+  const m = e.target.closest("[data-m]"); if (m) { F.month = m.dataset.m; render(); return; }
+  const po = e.target.closest("[data-o]"); if (po) { F.place = F.place === po.dataset.o ? "" : po.dataset.o; render(); return; }
+  if (e.target.closest("[data-nope]")) { $("bNoPe").onclick(); return; }
+  const pe = e.target.closest("[data-p]"); if (pe) { F.nope = false; F.person = F.person === pe.dataset.p ? "" : pe.dataset.p; render(); return; }
+  const tb = e.target.closest("[data-tab]"); if (tb) { tab = tb.dataset.tab; lbStrip(); return; }
+});
+const setView = v => { F.only = v === "pre"; F.fin = v === "fin"; render(); window.scrollTo(0, 0); };
+$("bAll").onclick = () => setView("all"); $("bOnly").onclick = () => setView(F.only ? "all" : "pre");
+$("bOut").onclick = () => { F.out = !F.out; render(); };
+$("bRej").onclick = () => { F.rej = !F.rej; render(); };
+$("bLook").onclick = () => { F.look = !F.look; render(); };
+$("bNew").onclick = () => { F.unseen = !F.unseen; render(); };
+$("bNoPe").onclick = () => { F.nope = !F.nope; if (F.nope) { F.person = ""; F.look = false; } render(); };
+$("bFin").onclick = () => setView(F.fin ? "all" : "fin");
+$("sOri").onchange = e => { F.ori = e.target.value; render(); };
+$("lCrop").value = cropMode; $("lCrop").onchange = e => { setCrop(e.target.value); e.target.blur(); };
+$("lbimg").addEventListener("load", drawCrop); window.addEventListener("resize", drawCrop);
+$("lFin").onclick = () => toggleFin(cur); $("lCov").onclick = () => toggleCover(cur); $("lBack").onclick = backToVis;
+$("exAll").onclick = () => { sel.forEach(f => fin.add(f)); save(); render(); openEx(); };
+$("sSort").onchange = e => { F.sort = e.target.value; render(); };
+$("sPlace").onchange = e => { F.place = e.target.value; render(); };
+$("lSel").onclick = () => toggleSel(cur); $("lRej").onclick = () => toggleRej(cur);
+$("lPrev").onclick = () => step(-1); $("lNext").onclick = () => step(1); $("lClose").onclick = closeLb;
+document.body.classList.toggle("festive", !S.plain);
+$("bTheme").onclick = () => { S.plain = !S.plain; document.body.classList.toggle("festive", !S.plain); save(); };
+$("bEx").onclick = openEx; $("exClose").onclick = () => { $("ex").hidden = true; };
+$("exCopy").onclick = () => { $("excmd").select(); try { navigator.clipboard.writeText($("excmd").value); } catch (e) { document.execCommand("copy"); } $("exCopy").textContent = L("Kopiert ✓", "Copied ✓"); setTimeout(() => $("exCopy").textContent = L("Befehl kopieren", "Copy command"), 1500); };
+$("exJson").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(state(), null, 1)], {type: "application/json"})); a.download = L("adventkalender-auswahl.json", "advent-calendar-selection.json"); a.click(); };
+$("exLoad").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const j = JSON.parse(r.result); sel = new Set((j.sel || []).filter(x => byName.has(x))); rej = new Set((j.rej || []).filter(x => byName.has(x))); fin = new Set((j.fin || []).filter(x => sel.has(x))); cover = byName.has(j.cover) ? j.cover : ""; seen = new Set(j.seen || []); lastSeen = j.last || ""; if (j.pver === D.pver) { S.names = j.names || {}; S.merge = j.merge || {}; S.hide = j.hide || []; } if (j.pl && j.pl.merge && j.pl.names) S.pl = j.pl; save(); applyMerge(); applyPlaces(); render(); openEx(); } catch (err) { alert(L("Datei nicht lesbar.", "Can't read this file.")); } }; r.readAsText(f); };
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("mp").hidden) { closePops(); return; }
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.key === "Escape" && (!$("fp").hidden || !$("gp").hidden)) { closePops(); return; }
+  if (!$("pv").hidden) { if (e.key === "Escape") closePv(); return; }
+  if (!$("plv").hidden) { if (e.key === "Escape") closePlv(); return; }
+  if (!$("mp").hidden) { if (e.key === "Escape") closePops(); return; }
+  if (!$("ex").hidden) { if (e.key === "Escape") $("ex").hidden = true; return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "n" || e.key === "N") { nextUnseen(); return; }
+  if (!cur) {
+    const mv = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[e.key];
+    if (mv) { e.preventDefault(); moveGc(mv[0], mv[1]); return; }
+    if (!gc || !vis.includes(gc)) return;
+    if (e.key === "Enter") openLb(gc);
+    else if (e.key === " ") { e.preventDefault(); toggleSel(gc); }
+    else if (e.key === "f" || e.key === "F") toggleFin(gc);
+    else if (e.key === "x" || e.key === "X") toggleRej(gc);
+    else if (e.key === "Escape") { gc = null; markGc(); }
+    return;
+  }
+  if (e.key === "Escape") closeLb();
+  else if (e.key === "ArrowRight") step(1);
+  else if (e.key === "ArrowLeft") step(-1);
+  else if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleSel(cur); }
+  else if (e.key === "x" || e.key === "X") toggleRej(cur);
+  else if (e.key === "f" || e.key === "F") toggleFin(cur);
+  else if (e.key === "t" || e.key === "T") toggleCover(cur);
+  else if (e.key === "b" || e.key === "B") backToVis();
+  else if (e.key === "z" || e.key === "Z") { const o = ["a", "", "d", "q", "h"]; setCrop(o[(o.indexOf(cropMode) + 1) % o.length]); }
+  else if ("1234".includes(e.key)) { tab = ["n", "m", "p", "pe"][+e.key - 1]; lbStrip(); }
+});
+$("exCopy").textContent = L("Befehl kopieren", "Copy command");
+$("bLang").textContent = L("English", "Deutsch");
+$("bLang").onclick = () => { try { localStorage.setItem("advent24-lang", L("en", "de")); } catch (e) {} location.reload(); };
+const openAtStart = readHash();
+if (!D.photos.some(p => p.lk && p.lk[1] > 0)) { $("bLook").hidden = true; F.look = false; }  /* look2.py is optional */
+try { if (anchor || openAtStart) history.scrollRestoration = "manual"; } catch (e) {}
+$("sSort").value = F.sort; $("sPlace").value = F.place; $("sOri").value = F.ori;
+applyMerge();
+applyPlaces();
+render();
+if (anchor) scrollToFile(anchor);
+if (openAtStart && byName.has(openAtStart)) { if (!anchor) scrollToFile(openAtStart); openLb(byName.get(openAtStart)); }
+</script>
+</body>
+</html>

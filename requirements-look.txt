@@ -1,0 +1,4 @@
+# look2.py ("looking at the camera"), in its own environment
+mediapipe==0.10.14
+opencv-python
+numpy

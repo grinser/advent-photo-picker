@@ -1,0 +1,6 @@
+numpy
+opencv-python
+pillow
+pillow-heif
+onnxruntime
+reverse_geocoder

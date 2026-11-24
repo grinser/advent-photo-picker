@@ -1,0 +1,15 @@
+# Everything the scripts write is about your photos and stays out of git
+prev/
+thumbs/
+faces/
+work/
+models/
+demo/
+data.js
+person_merge.json
+calendar-photos/
+auswahl/
+__pycache__/
+.venv/
+.venv-look/
+.DS_Store
