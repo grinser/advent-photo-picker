@@ -82,7 +82,7 @@ h2 .hs{color:var(--ac);font-size:13px;font-weight:600}
 #lbside{width:380px;background:var(--pn);border-left:1px solid var(--ln);display:flex;flex-direction:column}
 #tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px}
 #stripinfo{padding:0 10px 6px;color:var(--mu);font-size:12px}
-#strip{flex:1;overflow:auto;padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
+#strip{flex:1;min-height:0;overflow:auto;padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:max-content;gap:5px;align-content:start}
 #strip .t.cur{outline:2px solid #fff}
 #ex{position:fixed;inset:0;z-index:20;background:rgba(10,10,12,.92);display:flex;align-items:center;justify-content:center}
 #exbox{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:18px;width:min(820px,92vw);max-height:90vh;overflow:auto}
@@ -606,7 +606,15 @@ function setCrop(m) { cropMode = m; S.crop = m; $("lCrop").value = m; save(); dr
 let lastVis = null;
 function backToVis() { if (cur && lastVis && !vis.includes(cur)) openLb(lastVis); }
 function openLb(p) { cur = p; if (vis.includes(p)) lastVis = p; seen.add(p.f); lastSeen = p.f; save(); $("lb").hidden = false; $("lbimg").src = url("prev", p); lbInfo(); lbStrip(); writeHash(); }
-function closeLb() { const last = cur ? cur.f : ""; $("lb").hidden = true; if (cur && vis.includes(cur)) gc = cur; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); if (last) anchor = last; render(); if (last) scrollToFile(last, true); }
+/* Beim Schließen zur zuletzt angesehenen Stelle: das Bild selbst, oder, wenn es nicht (mehr) in der Galerie steht
+   (aussortiert, schon gesehen, aus dem Streifen rechts geöffnet), das zeitlich nächste Bild der Galerie */
+function nearestVis(p) { let best = null, d = Infinity; vis.forEach(q => { const x = Math.abs(q.t - p.t) * 1e6 + Math.abs(q.i - p.i); if (x < d) { d = x; best = q; } }); return best; }
+function closeLb() {
+  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); render();
+  if (!last) return;
+  const near = vis.includes(last) ? last : nearestVis(last);
+  if (near) { gc = near; anchor = near.f; markGc(); scrollToFile(near.f, true); writeHash(); }
+}
 function step(d) { if (!cur) return; let list = vis.includes(cur) ? vis : P; const k = list.indexOf(cur) + d; if (k >= 0 && k < list.length) openLb(list[k]); }
 
 /* ---------- Export ---------- */
