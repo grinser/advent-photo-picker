@@ -139,4 +139,17 @@ reference = await loadJSON('testset/reference.json');
 const q = new URLSearchParams(location.search);
 if (q.get('backend')) $('backend').value = q.get('backend');
 if (q.get('workers')) $('workers').value = q.get('workers');
-if (q.get('auto') && manifest) run(q.get('auto'), testJobs(q.get('auto')));
+if (q.get('auto') === 'all' && manifest) {
+  // every test set with both backends, one compact summary for copying
+  const sum = [];
+  for (const backend of ['wasm', 'webgpu']) for (const kind of ['jpeg', 'heic', 'iphone']) {
+    $('backend').value = backend;
+    await run(kind, testJobs(kind));
+    const r = window.spikeResult;
+    sum.push(r && r.text ? `${backend} ${kind}: ` + r.text.split('\n').filter((l) => /^(Gesamt|Median|Dekodiert|Python|Abgleich|Kerne)/.test(l)).join(' | ') : `${backend} ${kind}: Fehler ${r && r.error}`);
+  }
+  sum.unshift('Browser: ' + navigator.userAgent);
+  $('text').textContent = sum.join('\n\n'); $('text').hidden = false; $('copy').hidden = false;
+  $('out').innerHTML = ''; $('status').textContent = 'Alle Läufe fertig.';
+  window.spikeAll = sum.join('\n\n');
+} else if (q.get('auto') && manifest) run(q.get('auto'), testJobs(q.get('auto')));
