@@ -59,6 +59,8 @@ what you cannot find out.
   again.
 - The page says "No data yet": `build.py` has not run, or ran in another folder.
 - `HOME_COUNTRY` (for example `AT`) before `build.py` drops the country code from place names at home.
+- A second person's photos: set `EXTRA="name=/path/to/folder"` for `process.py` and `build.py` (see README,
+  "Photos from a second person"). It never replaces `PHOTOS`, so do not delete `work` for it.
 
 When they are done, offer to delete `prev`, `thumbs`, `faces`, `work`, `calendar-photos` and `data.js`. `models/`
 (330 MB) and `.venv` can go too if they will not use the picker again.

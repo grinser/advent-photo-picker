@@ -223,7 +223,7 @@ body.festive #toast{background:var(--candy);box-shadow:inset 0 0 0 1.5px var(--a
 </header>
 <p id="first" hidden data-en="Click ☆ on a photo to put it on the shortlist. A + then appears under the star, and clicking it makes the photo one of the 24 doors. Open a photo to compare it with similar ones and to make it the cover. Export … gives you the files.">Klicke bei einem Bild auf ☆, um es in die Vorauswahl zu legen. Unter dem Stern erscheint dann ein +. Mit einem Klick darauf wird das Bild eines der 24 Türchen. Öffne ein Bild, um es mit ähnlichen zu vergleichen und zum Titelbild zu machen. Export … liefert die Dateien.</p>
 <div class="pop" id="fp" hidden>
-  <div class="row"><label><span data-en="Place">Ort</span> <select id="sPlace"></select></label><label>Format <select id="sOri"><option value="" data-en="all">alle</option><option value="q" data-en="Landscape">Querformat</option><option value="h" data-en="Portrait">Hochformat</option></select></label></div>
+  <div class="row"><label><span data-en="Place">Ort</span> <select id="sPlace"></select></label><label>Format <select id="sOri"><option value="" data-en="all">alle</option><option value="q" data-en="Landscape">Querformat</option><option value="h" data-en="Portrait">Hochformat</option></select></label><label id="lSrc" hidden><span data-en="Source">Quelle</span> <select id="sSrc"></select></label></div>
   <div class="row">
     <button id="bLook" title="Nur Bilder, auf denen alle bewerteten Personen die Augen offen haben und zur Kamera schauen" data-en-title="Only photos where everyone who was rated has open eyes and looks at the camera" data-en="👁 Looking at the camera">👁 Blick zur Kamera</button>
     <button id="bNew" title="Bilder ausblenden, die du schon in der Großansicht angesehen hast" data-en-title="Hide photos you have already opened" data-en="Unseen only">Nur ungesehene</button>
@@ -307,8 +307,12 @@ document.documentElement.lang = LANG;
 if (LANG === "en") { document.querySelectorAll("[data-en]").forEach(el => { el.innerHTML = el.dataset.en; }); document.querySelectorAll("[data-en-title]").forEach(el => { el.title = el.dataset.enTitle; }); document.querySelectorAll("[data-en-aria]").forEach(el => { el.setAttribute("aria-label", el.dataset.enAria); }); document.querySelectorAll("[data-en-placeholder]").forEach(el => { el.placeholder = el.dataset.enPlaceholder; }); }
 const D = window.DATA || {photos: [], places: [], persons: [], src: "", out: ""};
 const P = D.photos; P.forEach((p, i) => p.i = i);
-const BAD = ["unscharf", "dunkel", "screenshot", "duplikat", "serie"];
-const LBL = {unscharf: L("unscharf", "blurry"), dunkel: L("zu dunkel", "too dark"), screenshot: "Screenshot", duplikat: L("Duplikat", "duplicate"), serie: L("ähnlich (Serie)", "similar (burst)"), import: L("kein Kamerabild", "not from a camera")};
+const BAD = ["unscharf", "dunkel", "screenshot", "duplikat", "serie", "vonmir"];
+const LBL = {unscharf: L("unscharf", "blurry"), dunkel: L("zu dunkel", "too dark"), screenshot: "Screenshot", duplikat: L("Duplikat", "duplicate"), serie: L("ähnlich (Serie)", "similar (burst)"), import: L("kein Kamerabild", "not from a camera"), whatsapp: "WhatsApp", vonmir: L("von dir geschickt", "sent by you")};
+/* Weitere Quellen (EXTRA in process.py): ihre Bilder heißen "@name/…"; "s:" = eigene Fotos, "s:name" = diese Quelle, "wa" = von dir geschickte Bilder */
+const EXTRA = Object.keys(D.extra || {}), srcOf = p => p.f[0] === "@" ? p.f.slice(1).split("/")[0] : "";
+const srcName = k => k ? k[0].toUpperCase() + k.slice(1) : L("ich", "me");
+const srcLabel = v => v === "wa" ? L("von dir per WhatsApp", "sent by you via WhatsApp") : srcName(v.slice(2));
 const KEY = D.key || "advent24-v1", MAX = 24;  /* Demo-Daten bringen einen eigenen Schlüssel mit, damit sie die echte Auswahl nicht überschreiben */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -356,7 +360,7 @@ const months = [...new Set(P.map(ym))].sort();
 
 let door = new Map();
 function calcDoors() { door = new Map([...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t).map((p, k) => [p.f, k + 1])); }
-const F = {month: "", place: "", person: "", out: false, only: false, rej: false, look: false, unseen: false, nope: false, fin: false, ori: "", sort: "t"};
+const F = {month: "", place: "", person: "", out: false, only: false, rej: false, look: false, unseen: false, nope: false, fin: false, ori: "", src: "", sort: "t"};
 let vis = [], cur = null, tab = "n";
 
 function match(p) {
@@ -365,12 +369,14 @@ function match(p) {
   if (F.person !== "" && !p.pe.includes(+F.person)) return false;
   if (F.look && !allLook(p)) return false;
   if (F.ori && isQuer(p) !== (F.ori === "q")) return false;
+  if (F.src === "wa") { if (!p.fl.includes("vonmir")) return false; }
+  else if (F.src && srcOf(p) !== F.src.slice(2)) return false;
   if (F.fin) return fin.has(p.f) || p.f === cover;
   if (F.unseen && seen.has(p.f) && !F.only) return false;
   if (F.nope && hasFace(p)) return false;
   if (F.only) return sel.has(p.f);
   if (sel.has(p.f)) return true;
-  if (!F.out && isOut(p)) return false;
+  if (!F.out && isOut(p) && F.src !== "wa") return false;
   if (!F.rej && rej.has(p.f)) return false;
   return true;
 }
@@ -436,6 +442,7 @@ function head() {
   const act = [];
   if (F.place !== "") act.push(["place", L("Ort: ", "Place: ") + plabel(F.place === "x" ? "x" : +F.place)]);
   if (F.ori) act.push(["ori", F.ori === "q" ? L("Querformat", "Landscape") : L("Hochformat", "Portrait")]);
+  if (F.src) act.push(["src", L("Quelle: ", "Source: ") + srcLabel(F.src)]);
   if (F.look) act.push(["look", L("Blick zur Kamera", "Looking at the camera")]);
   if (F.unseen) act.push(["unseen", L("Nur ungesehene", "Unseen only")]);
   if (F.nope) act.push(["nope", L("Ohne Gesichter", "No faces")]);
@@ -444,9 +451,9 @@ function head() {
   if (F.rej) act.push(["rej", L("mit Abgelehnten", "with rejected")]);
   if (F.sort === "s") act.push(["sort", L("nach Qualität", "by quality")]);
   $("active").innerHTML = act.map(a => '<button class="af" data-af="' + a[0] + '" title="' + L("Filter entfernen", "Remove filter") + '">' + esc(a[1]) + " ✕</button>").join("");
-  const nf = act.filter(a => ["place", "ori", "look", "unseen", "nope"].includes(a[0])).length;
+  const nf = act.filter(a => ["place", "ori", "src", "look", "unseen", "nope"].includes(a[0])).length;
   $("bFilter").textContent = "Filter" + (nf ? " (" + nf + ")" : "") + " ▾"; $("bFilter").className = nf ? "on" : "";
-  $("sPlace").value = F.place; $("sOri").value = F.ori; $("sSort").value = F.sort;
+  $("sPlace").value = F.place; $("sOri").value = F.ori; $("sSrc").value = F.src; $("sSort").value = F.sort;
   const cand = P.filter(p => !isOut(p)).length;
   $("stat").textContent = L(vis.length + " angezeigt · " + P.length + " Bilder · " + cand + " Kandidaten · " + (P.length - cand) + " automatisch aussortiert · Stand " + (D.gen || "") + " · " + seen.size + " gesehen ", vis.length + " shown · " + P.length + " photos · " + cand + " candidates · " + (P.length - cand) + " sorted out automatically · data from " + (D.gen || "") + " · " + seen.size + " seen ");
   if (seen.size) { const u = document.createElement("u"); u.textContent = L("(zurücksetzen)", "(reset)"); u.dataset.resetseen = "1"; $("stat").appendChild(u); }
@@ -478,6 +485,7 @@ function writeHash() {
   if (F.month) q.set("m", F.month); if (F.place !== "") q.set("o", F.place); if (F.person !== "") q.set("p", F.person);
   ["out", "only", "rej", "look", "unseen", "nope", "fin"].forEach(k => { if (F[k]) q.set(k, "1"); });
   if (F.ori) q.set("f", F.ori);
+  if (F.src) q.set("q", F.src);
   if (F.sort !== "t") q.set("s", F.sort);
   if (cur) q.set("bild", cur.f); else if (anchor) q.set("bei", anchor);
   const h = "#" + q.toString();
@@ -488,6 +496,7 @@ function readHash() {
   const q = new URLSearchParams((location.hash || "").slice(1));
   F.month = q.get("m") || ""; F.place = q.get("o") || ""; F.person = q.get("p") || "";
   ["out", "only", "rej", "look", "unseen", "nope", "fin"].forEach(k => F[k] = q.get(k) === "1"); F.ori = ["q", "h"].includes(q.get("f")) ? q.get("f") : ""; F.sort = q.get("s") === "s" ? "s" : "t";
+  F.src = q.get("q") || ""; if (F.src && F.src !== "wa" && F.src !== "s:" && !EXTRA.includes(F.src.slice(2))) F.src = "";
   if (F.month && !months.includes(F.month)) F.month = "";
   if (F.place !== "" && F.place !== "x" && !D.places[+F.place]) F.place = "";
   anchor = q.get("bei") || ""; return q.get("bild") || "";
@@ -552,6 +561,8 @@ function lbInfo() {
   if (p.lk[1] > 0) parts.push("👁 " + p.lk[0] + L(" von ", " of ") + p.lk[1] + L(" schauen zur Kamera", " look at the camera") + (p.ec > 0 ? ', <span style="color:var(--bad)">' + p.ec + L(" mit Augen zu", " with eyes closed") + "</span>" : ""));
   if (p.pe.length) parts.push(p.pe.map(pname).map(esc).join(", "));
   const fl = p.fl.map(f => LBL[f]).concat(rej.has(p.f) ? [L("abgelehnt", "rejected")] : []); if (fl.length) parts.push('<span style="color:var(--bad)">' + fl.join(", ") + "</span>");
+  if (EXTRA.length) parts.push(L("Quelle: ", "Source: ") + esc(srcName(srcOf(p))));
+  if (p.mine) parts.push(L("Original: ", "Original: ") + esc(p.mine));
   parts.push(esc(p.f));
   { const inVis = vis.includes(p), list = inVis ? vis : P; parts.unshift('<b style="color:var(--ac)">' + L("Bild ", "Photo ") + (list.indexOf(p) + 1) + L(" von ", " of ") + list.length + "</b> " + (inVis ? L("in der Galerie-Ansicht", "in the gallery view") : L("(nicht in der Galerie-Ansicht. Die Pfeile blättern nach Zeit durch alle Bilder)", "(not in the gallery view. The arrows go through all photos by time)"))); }
   $("lbinfo").innerHTML = parts.join(" · ");
@@ -691,7 +702,7 @@ document.addEventListener("click", e => {
   if (mb) { const open = $("mp").hidden || $("mp").dataset.row !== mb.dataset.more; closePops(); if (open) openMore(mb.dataset.more, mb); return; }
   if (!e.target.closest(".pop")) { const wasOpen = !$("fp").hidden || !$("gp").hidden || !$("mp").hidden; closePops(); if (wasOpen && e.target.closest("#main")) return; } else if (e.target.closest("[data-pv]") || e.target.closest("#mp .chip")) closePops();
   const af = e.target.closest("[data-af]");
-  if (af) { const k = af.dataset.af; if (k === "sort") F.sort = "t"; else if (["place", "person", "ori"].includes(k)) F[k] = ""; else F[k] = false; render(); return; }
+  if (af) { const k = af.dataset.af; if (k === "sort") F.sort = "t"; else if (["place", "person", "ori", "src"].includes(k)) F[k] = ""; else F[k] = false; render(); return; }
   if (e.target.closest("[data-resetseen]")) { seen.clear(); lastSeen = ""; save(); render(); return; }
   if (e.target.closest("[data-pv]")) { pick.clear(); renderPv(); $("pv").hidden = false; return; }
   if (e.target.closest("[data-plv]")) { ppick.clear(); renderPlv(); $("plv").hidden = false; return; }
@@ -729,6 +740,12 @@ $("bNew").onclick = () => { F.unseen = !F.unseen; render(); };
 $("bNoPe").onclick = () => { F.nope = !F.nope; if (F.nope) { F.person = ""; F.look = false; } render(); };
 $("bFin").onclick = () => setView(F.fin ? "all" : "fin");
 $("sOri").onchange = e => { F.ori = e.target.value; render(); };
+$("sSrc").onchange = e => { F.src = e.target.value; render(); };
+if (EXTRA.length) {
+  const nWa = P.filter(p => p.fl.includes("vonmir")).length;
+  $("sSrc").innerHTML = '<option value="">' + L("alle", "all") + "</option>" + ["s:"].concat(EXTRA.map(k => "s:" + k)).map(v => '<option value="' + esc(v) + '">' + esc(srcLabel(v)) + " (" + P.filter(p => srcOf(p) === v.slice(2)).length + ")</option>").join("") + (nWa ? '<option value="wa">' + esc(srcLabel("wa")) + " (" + nWa + ")</option>" : "");
+  $("lSrc").hidden = false;
+}
 $("lCrop").value = cropMode; $("lCrop").onchange = e => { setCrop(e.target.value); e.target.blur(); };
 $("lbimg").addEventListener("load", drawCrop); window.addEventListener("resize", drawCrop);
 $("lFin").onclick = () => toggleFin(cur); $("lCov").onclick = () => toggleCover(cur); $("lBack").onclick = backToVis;
@@ -781,7 +798,7 @@ $("bLang").onclick = () => { try { localStorage.setItem("advent24-lang", L("en",
 const openAtStart = readHash();
 if (!D.photos.some(p => p.lk && p.lk[1] > 0)) { $("bLook").hidden = true; F.look = false; }  /* look2.py is optional */
 try { if (anchor || openAtStart) history.scrollRestoration = "manual"; } catch (e) {}
-$("sSort").value = F.sort; $("sPlace").value = F.place; $("sOri").value = F.ori;
+$("sSort").value = F.sort; $("sPlace").value = F.place; $("sOri").value = F.ori; $("sSrc").value = F.src;
 applyMerge();
 applyPlaces();
 render();
