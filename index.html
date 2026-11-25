@@ -25,7 +25,7 @@ button.pri{background:var(--pri);color:var(--pritx);border-color:var(--pri);font
 .mo .st{margin-left:8px}
 .mo small{display:block;font-size:11px;color:var(--mu)}
 .mo.on small{color:#1b1505}
-.mo b.full{color:var(--ok)} .mo.on b.full{color:#1b1505}
+#nFin.over{color:#e8590c} .mo b.full{color:var(--ok)} .mo.on b.full{color:#1b1505}
 .row.one{flex-wrap:nowrap}
 .scrollrow{flex:1;min-width:0;margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 /* rechts neben beiden Zeilen dieselben zwei Knöpfe in derselben Breite: Liste, Bearbeiten */
@@ -324,7 +324,8 @@ const byName = new Map(P.map(p => [p.f, p]));
 let sel = new Set(S.sel.filter(f => byName.has(f))), rej = new Set(S.rej.filter(f => byName.has(f)));
 const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, seen: [...seen], last: lastSeen});
 let seen = new Set(S.seen || []), lastSeen = S.last || "";
-/* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, höchstens 24 Türchen, nach Datum nummeriert) + ein Titelbild (cover) */
+/* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, Türchen) + ein Titelbild (cover). Das Finale darf mehr als 24
+   Bilder haben (weiches Limit); nummeriert nach Datum wird erst bei höchstens 24, und der Export braucht genau 24. */
 let fin = new Set((S.fin || []).filter(f => sel.has(f))), cover = byName.has(S.cover) ? S.cover : "";
 const isQuer = p => p.w > p.h;
 let toastTimer = 0;
@@ -359,7 +360,7 @@ const gsz = {}; P.forEach(p => gsz[p.g] = (gsz[p.g] || 0) + 1);
 const months = [...new Set(P.map(ym))].sort();
 
 let door = new Map();
-function calcDoors() { door = new Map([...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t).map((p, k) => [p.f, k + 1])); }
+function calcDoors() { door = new Map(fin.size > MAX ? [] : [...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t).map((p, k) => [p.f, k + 1])); }
 const F = {month: "", place: "", person: "", out: false, only: false, rej: false, look: false, unseen: false, nope: false, fin: false, ori: "", src: "", sort: "t"};
 let vis = [], cur = null, tab = "n";
 
@@ -390,18 +391,22 @@ function tile(p, extra) {
   if (p.ec > 0) b += '<span class="r" title="' + L("Gesichter mit geschlossenen Augen", "Faces with closed eyes") + '">' + L("Augen zu ", "Eyes closed ") + p.ec + "</span>";
   p.fl.forEach(f => { if (BAD.includes(f)) b += '<span class="r">' + LBL[f] + "</span>"; });
   if (rej.has(p.f)) b += '<span class="r">' + L("abgelehnt", "rejected") + '</span>';
-  return '<div class="' + c.join(" ") + '" data-i="' + p.i + '" title="' + esc(fmt(p)) + L(" · Qualität ", " · quality ") + p.s + '"><img loading="lazy" src="' + url("thumbs", p) + '" alt=""><div class="star" data-star="1" title="' + (sel.has(p.f) ? L("In der Vorauswahl, anklicken zum Entfernen", "On the shortlist, click to remove") : L("In die Vorauswahl", "Add to the shortlist")) + '">' + "★" + '</div><div class="door" data-door="1" title="' + (fin.has(p.f) ? L("Türchen ", "Door ") + door.get(p.f) + L(", anklicken, um das Türchen zu entfernen", ", click to remove the door") : L("Zum Türchen machen", "Make it a door")) + '">' + (fin.has(p.f) ? door.get(p.f) : "+") + '</div><div class="bd">' + b + "</div></div>";
+  return '<div class="' + c.join(" ") + '" data-i="' + p.i + '" title="' + esc(fmt(p)) + L(" · Qualität ", " · quality ") + p.s + '"><img loading="lazy" src="' + url("thumbs", p) + '" alt=""><div class="star" data-star="1" title="' + (sel.has(p.f) ? L("In der Vorauswahl, anklicken zum Entfernen", "On the shortlist, click to remove") : L("In die Vorauswahl", "Add to the shortlist")) + '">' + "★" + '</div><div class="door" data-door="1" title="' + (fin.has(p.f) ? (door.has(p.f) ? L("Türchen ", "Door ") + door.get(p.f) : L("Im Finale", "In the final round")) + L(", anklicken, um das Türchen zu entfernen", ", click to remove the door") : L("Zum Türchen machen", "Make it a door")) + '">' + (fin.has(p.f) ? door.get(p.f) || "✓" : "+") + '</div><div class="bd">' + b + "</div></div>";
 }
 function render() {
   calcDoors();
   vis = P.filter(match);
   if (F.sort === "s") vis.sort((a, b) => b.s - a.s || a.t - b.t);
+  /* In der Türchen-Ansicht steht das Titelbild immer ganz oben, auch wenn ein Filter (Monat, Ort, Format …) es sonst ausblenden würde */
+  const cov = F.fin && cover ? byName.get(cover) : null;
+  if (cov) vis = vis.filter(p => p !== cov);
   let h = "";
   if (F.sort === "t") {
     let k = ""; const nm = {}; vis.forEach(p => { const m = ym(p); nm[m] = (nm[m] || 0) + 1; });
     vis.forEach(p => { const m = ym(p); if (m !== k) { h += (k ? "</div>" : "") + "<h2>" + moName(m) + '<span class="n">' + nm[m] + (nm[m] === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + '</span><span class="hs" data-hs="' + m + '"></span></h2><div class=\'grid\'>'; k = m; } h += tile(p); });
     if (k) h += "</div>";
   } else h = '<h2>' + L("Nach Qualität", "By quality") + '<span class="n">' + vis.length + (vis.length === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + "</span></h2><div class='grid'>" + vis.map(p => tile(p)).join("") + "</div>";
+  if (cov) { h = "<h2>" + L("Titelbild", "Cover") + "</h2><div class='grid'>" + tile(cov) + "</div>" + h; vis.unshift(cov); }
   $("main").innerHTML = h || "<p class='hint'>" + (!D.photos.length ? (window.DATA
     ? L("Keine Bilder gefunden. Prüfe PHOTOS und START und starte process.py, arc.py und build.py noch einmal (siehe README).", "No photos found. Check PHOTOS and START, then run process.py, arc.py and build.py again (see README).")
     : L("Noch keine Daten. Starte zuerst process.py, arc.py und build.py (siehe README) und lade die Seite dann neu.", "No data yet. Run process.py, arc.py and build.py first (see README), then reload this page."))
@@ -425,9 +430,9 @@ function fillMore() {
 }
 function head() {
   calcDoors();
-  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : "+"; });
+  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : fin.has(p.f) ? "✓" : "+"; });
   const n = fin.size, viewAll = !F.only && !F.fin;
-  $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (cover ? L(" +Titel", " +cover") : "");
+  $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (n > MAX ? L(" · " + (n - MAX) + " zu viel", " · " + (n - MAX) + " too many") : "") + (cover ? L(" +Titel", " +cover") : ""); $("nFin").className = n > MAX ? "over" : "";
   $("bAll").className = viewAll ? "on" : ""; $("bFin").title = L("Nur die " + MAX + " Türchen und das Titelbild zeigen. Titelbild: " + (cover ? "gewählt" : "fehlt noch"), "Show only the " + MAX + " doors and the cover. Cover: " + (cover ? "chosen" : "missing"));
   const per = {}, pre = {}; fin.forEach(f => { const k = ym(byName.get(f)); per[k] = (per[k] || 0) + 1; }); sel.forEach(f => { const k = ym(byName.get(f)); pre[k] = (pre[k] || 0) + 1; });
   $("months").innerHTML = '<button class="mo' + (F.month === "" ? " on" : "") + '" data-m="">' + L("Alle<small>Monate</small>", "All<small>months</small>") + '</button>' +
@@ -471,8 +476,7 @@ function lostRole(p) { const t = [fin.has(p.f) ? L("aus den Türchen", "from the
 function toggleSel(p) { if (sel.has(p.f)) { lostRole(p); sel.delete(p.f); fin.delete(p.f); if (cover === p.f) cover = ""; } else { sel.add(p.f); rej.delete(p.f); } changed(p); }
 function toggleFin(p) {
   if (fin.has(p.f)) fin.delete(p.f);
-  else if (fin.size >= MAX) { toast(L("Alle " + MAX + " Türchen sind vergeben. Entferne zuerst eines.", "All " + MAX + " doors are taken. Remove one first.")); return; }
-  else { fin.add(p.f); sel.add(p.f); rej.delete(p.f); }
+  else { fin.add(p.f); sel.add(p.f); rej.delete(p.f); if (fin.size === MAX + 1) toast(L("Mehr als " + MAX + " im Finale. Das geht, die Türchennummern kommen, sobald du wieder auf " + MAX + " gekürzt hast.", "More than " + MAX + " in the final round. That is fine; the door numbers return once you are back at " + MAX + ".")); }
   changed(p);
 }
 function toggleCover(p) { if (cover === p.f) cover = ""; else { if (cover) toast(L("Das bisherige Titelbild ist ersetzt.", "The previous cover is replaced.")); cover = p.f; sel.add(p.f); rej.delete(p.f); } changed(p); if (cur) lbStrip(); else render(); }
@@ -573,7 +577,7 @@ function lbInfo() {
   $("lRej").textContent = isRej ? L("Ablehnung aufheben", "Undo reject") : L("✕ Ablehnen", "✕ Reject");
   $("lbimgw").className = isSel ? "sel" : isRej ? "rej" : "";
   bd.hidden = !(isSel || isRej); bd.className = isRej ? "no" : "";
-  bd.textContent = isRej ? L("✕ Abgelehnt", "✕ Rejected") : (isFin ? L("★ Türchen ", "★ Door ") + door.get(p.f) : L("★ Vorauswahl", "★ Shortlist")) + (isCov ? L(" · Titelbild", " · cover") : "");
+  bd.textContent = isRej ? L("✕ Abgelehnt", "✕ Rejected") : (isFin ? (door.has(p.f) ? L("★ Türchen ", "★ Door ") + door.get(p.f) : L("★ Finale (" + (fin.size - MAX) + " zu viel)", "★ Final round (" + (fin.size - MAX) + " too many)")) : L("★ Vorauswahl", "★ Shortlist")) + (isCov ? L(" · Titelbild", " · cover") : "");
   drawCrop();
   $("lBack").hidden = !(lastVis && !vis.includes(p));
   if (lastVis && !vis.includes(p)) $("lBack").textContent = L("↩ Zurück zur Galerie-Ansicht (Bild ", "↩ Back to the gallery view (photo ") + (vis.indexOf(lastVis) + 1) + ")";
@@ -635,11 +639,11 @@ function openEx() {
   const list = [...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t), cov = cover ? byName.get(cover) : null, dir = D.out + (D.sep || "/") + "calendar-photos";
   $("exh").textContent = "Export: " + list.length + L(" von ", " of ") + MAX + L(" Türchen", " doors") + (list.length === MAX ? " ✓" : "") + L(" · Titelbild ", " · cover ") + (cov ? "✓ (" + (isQuer(cov) ? L("Querformat", "landscape") : L("Hochformat", "portrait")) + ")" : L("fehlt", "missing")) + L(" · Vorauswahl ", " · shortlist ") + sel.size;
   $("exdir").textContent = dir;
-  const miss = [list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
+  const over = list.length > MAX, miss = [over ? L("Das sind " + (list.length - MAX) + " Bilder zu viel. Entferne sie aus den Türchen, dann gibt es hier den Befehl.", "That is " + (list.length - MAX) + " photos too many. Remove them from the doors, and the command appears here.") : list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
   if (D.key) miss.push(L("Das ist die Demo. Der Befehl zeigt nur, wie er aussieht, und wird nicht ausgeführt.", "This is the demo. The command only shows what it looks like and does not run."));
   $("exwarn").textContent = miss.join(" "); $("exwarn").hidden = !miss.length;
   const args = (cov ? [shq(expName(cov, "00_cover") + "=" + cov.f)] : []).concat(list.map((p, k) => shq(expName(p, String(k + 1).padStart(2, "0")) + "=" + p.f)));
-  $("excmd").value = list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
+  $("excmd").value = over ? "" : list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
   $("exAll").hidden = !(sel.size > 0 && sel.size <= MAX && fin.size < sel.size);
   $("exgrid").innerHTML = (cov ? tile(cov, "x") : "") + list.map(p => tile(p, "x")).join("");
   $("ex").hidden = false;
