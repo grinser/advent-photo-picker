@@ -13,6 +13,11 @@ Each version is a [release on GitHub](https://github.com/grinser/advent-photo-pi
 
 ## [Unreleased]
 
+### Changed
+
+- The strip next to the large view stays where it is when you click a photo in it, so the photo under the mouse no
+  longer changes. It scrolls only when the current photo would leave the view, and only as far as needed.
+
 ### Fixed
 
 - In the large view, the photos on the right no longer overlap when a burst has many photos.

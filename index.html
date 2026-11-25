@@ -578,14 +578,23 @@ function lbInfo() {
   $("lBack").hidden = !(lastVis && !vis.includes(p));
   if (lastVis && !vis.includes(p)) $("lBack").textContent = L("↩ Zurück zur Galerie-Ansicht (Bild ", "↩ Back to the gallery view (photo ") + (vis.indexOf(lastVis) + 1) + ")";
 }
+/* The strip stays put while the current photo is in it: a click or an arrow key inside it only moves the frame, and the strip
+   scrolls only as far as needed to keep that photo in view. It is rebuilt around the photo for another tab or a photo outside it. */
+let stripList = null, stripTab = "";
 function lbStrip() {
+  const st = $("strip");
+  if (stripList && stripTab === tab && stripList.includes(cur)) {
+    const y = st.scrollTop; st.innerHTML = stripList.map(q => tile(q, q === cur ? "cur" : "")).join(""); st.scrollTop = y;
+    const c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); if (a.top < b.top) st.scrollTop -= b.top - a.top + 6; else if (a.bottom > b.bottom) st.scrollTop += a.bottom - b.bottom + 6; }
+    return;
+  }
   const CAP = 300; let r = related(cur); const total = r.length;
   if (r.length > CAP) { const k = r.findIndex(q => q.i >= cur.i), a = Math.max(0, Math.min(k - CAP / 2, r.length - CAP)); r = r.slice(a, a + CAP); }
   const note = {n: L("Gleiche Serie und die Bilder direkt davor und danach.", "Same burst and the photos right before and after."), m: L("Bilder vom selben Zeitpunkt (Pausen unter 2 Stunden).", "Photos from the same moment (gaps under 2 hours)."), p: cur.p < 0 ? L("Dieses Bild hat keine GPS-Daten.", "This photo has no GPS data.") : L("Bilder vom selben Ort: ", "Photos from the same place: ") + D.places[cur.p].n + ".", pe: cur.pe.length ? L("Bilder mit denselben Personen.", "Photos with the same people.") : L("Keine bekannte Person auf diesem Bild.", "No known person in this photo.")}[tab];
   $("stripinfo").textContent = note + " " + total + L(" Bilder", " photos") + (total > r.length ? " (" + r.length + L(" angezeigt)", " shown)") : "") + L(", einschließlich der aussortierten Bilder.", ", including sorted-out ones.");
-  $("strip").innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
+  stripList = r; stripTab = tab; st.innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.className = b.dataset.tab === tab ? "on" : "");
-  const st = $("strip"), c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
+  const c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
 }
 /* ---------- Zuschnitt-Vorschau. Maße aus dem BIPA/CEWE-Projekt "Adventskalender mit Türchenbildern & kinder, Querformat" abgelesen:
    Titel 30,5 x 21 cm, 6 x 4 quadratische Türchen (je ca. 4 cm). Hochformat-Raster ist nur gedreht geschätzt. Zuschnitt ist mittig; im Editor lässt er sich verschieben. ---------- */
@@ -610,7 +619,7 @@ function openLb(p) { cur = p; if (vis.includes(p)) lastVis = p; seen.add(p.f); l
    (aussortiert, schon gesehen, aus dem Streifen rechts geöffnet), das zeitlich nächste Bild der Galerie */
 function nearestVis(p) { let best = null, d = Infinity; vis.forEach(q => { const x = Math.abs(q.t - p.t) * 1e6 + Math.abs(q.i - p.i); if (x < d) { d = x; best = q; } }); return best; }
 function closeLb() {
-  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); render();
+  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; stripList = null; $("lbimg").removeAttribute("src"); render();
   if (!last) return;
   const near = vis.includes(last) ? last : nearestVis(last);
   if (near) { gc = near; anchor = near.f; markGc(); scrollToFile(near.f, true); writeHash(); }
