@@ -74,7 +74,9 @@ The scripts read one folder, including its subfolders. HEIC and JPEG both work.
 
 ## Setup
 
-Download the code: on this page, click Code › Download ZIP and unzip it. Then open a terminal in that folder.
+Download the code: take the ZIP of the newest [release](https://github.com/grinser/advent-photo-picker/releases)
+(what changed is in [CHANGELOG.md](CHANGELOG.md)), or click Code › Download ZIP on this page for the newest state, and
+unzip it. Then open a terminal in that folder.
 
 - **Mac:** open Terminal, type `cd ` (with a space), drag the unzipped folder into the window and press Enter.
 - **Windows:** open the unzipped folder in File Explorer, click into the address bar, type `cmd` and press Enter.
