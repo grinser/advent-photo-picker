@@ -13,6 +13,12 @@ Each version is a [release on GitHub](https://github.com/grinser/advent-photo-pi
 
 ## [Unreleased]
 
+### Added
+
+- In the large view you can drag the crop frame to the part of the photo you want, and double-click it to centre it
+  again. The position is saved per photo, separately for the door and the cover. The export still writes whole photos
+  and lists every crop in `calendar-photos/crops.json`, which the recipe uses to fill the project file.
+
 ### Changed
 
 - The strip next to the large view stays where it is when you click a photo in it, so the photo under the mouse no

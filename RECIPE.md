@@ -26,8 +26,9 @@ empty Advent calendar, [one-photo file] is the same calendar with one photo on d
 Find out how the project file stores a photo and its crop. Then write a script that takes
 the template and the 25 files in the picker's calendar-photos folder (00_cover_... is
 the cover, the number in 01_... to 24_... is the door) and writes a new project file with
-those photos, each cropped from the middle. Never write to the template. Don't open or
-look at the photos yourself, run everything on this computer and don't upload anything.
+those photos. Take each crop from calendar-photos/crops.json (left, top, width and height
+as fractions of the photo); it holds where I moved the crop in the picker. Never write to
+the template. Don't open or look at the photos yourself, run everything on this computer and don't upload anything.
 Tell me what you could not work out from the two files. I'll check and adjust the crops
 in the software before I order.
 ```

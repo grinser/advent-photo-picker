@@ -96,7 +96,7 @@ textarea{width:100%;height:190px;background:#111;color:#cfe;border:1px solid var
 .pc .fs img{width:130px;height:130px;border-radius:8px;object-fit:cover;background:#000}
 .pc input[type=text]{background:#111;color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:5px 8px;font:inherit;width:200px}
 #lbimgw{position:relative;overflow:hidden}
-#crop{position:absolute;box-shadow:0 0 0 4000px rgba(0,0,0,.66);outline:2px solid #fff;pointer-events:none}
+#crop{position:absolute;box-shadow:0 0 0 4000px rgba(0,0,0,.66);outline:2px solid #fff;cursor:move;touch-action:none}
 #crop[hidden]{display:none}
 #crop i{position:absolute;border:1px dashed rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 #lbbadge{z-index:2}
@@ -316,13 +316,13 @@ const srcLabel = v => v === "wa" ? L("von dir per WhatsApp", "sent by you via Wh
 const KEY = D.key || "advent24-v1", MAX = 24;  /* Demo-Daten bringen einen eigenen Schlüssel mit, damit sie die echte Auswahl nicht überschreiben */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-let S = {sel: [], rej: [], fin: [], cover: "", names: {}, merge: {}, hide: [], seen: [], last: "", pl: {merge: {}, names: {}}};
+let S = {cp: {}, sel: [], rej: [], fin: [], cover: "", names: {}, merge: {}, hide: [], seen: [], last: "", pl: {merge: {}, names: {}}};
 try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 if (S.pver !== D.pver) { S.names = {}; S.merge = {}; S.hide = []; S.pver = D.pver; }  /* Personen neu berechnet: alte Namen passen nicht mehr */
 { const m0 = JSON.stringify(D.merge0 || {}); if (S.m0 !== m0) { Object.keys(D.merge0 || {}).forEach(k => { S.merge[k] = D.merge0[k]; }); S.m0 = m0; } }  /* vorgegebene Zusammenlegungen einmal übernehmen */
 const byName = new Map(P.map(p => [p.f, p]));
 let sel = new Set(S.sel.filter(f => byName.has(f))), rej = new Set(S.rej.filter(f => byName.has(f)));
-const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, seen: [...seen], last: lastSeen});
+const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, cp: S.cp, seen: [...seen], last: lastSeen});
 let seen = new Set(S.seen || []), lastSeen = S.last || "";
 /* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, Türchen) + ein Titelbild (cover). Das Finale darf mehr als 24
    Bilder haben (weiches Limit); nummeriert nach Datum wird erst bei höchstens 24, und der Export braucht genau 24. */
@@ -610,11 +610,27 @@ function drawCrop() {
   if (!c || !cur || !img.clientWidth) { el.hidden = true; return; }
   const W = img.clientWidth, H = img.clientHeight, wr = $("lbimgw").getBoundingClientRect(), ir = img.getBoundingClientRect();
   let w = W, h = W / c.a; if (h > H) { h = H; w = H * c.a; }
-  el.style.left = (ir.left - wr.left + (W - w) / 2) + "px"; el.style.top = (ir.top - wr.top + (H - h) / 2) + "px"; el.style.width = w + "px"; el.style.height = h + "px";
+  const k = effCrop(cur), pos = cpGet(cur, k); cropGeo = {W, H, w, h};
+  el.style.left = (ir.left - wr.left + (W - w) * pos[0]) + "px"; el.style.top = (ir.top - wr.top + (H - h) * pos[1]) + "px";
+  el.title = L("Ziehen verschiebt den Zuschnitt, Doppelklick setzt ihn in die Mitte zurück.", "Drag to move the crop, double-click to centre it again."); el.style.width = w + "px"; el.style.height = h + "px";
   let g = "";
   if (c.nx) for (let j = 0; j < c.ny; j++) for (let i = 0; i < c.nx; i++) g += '<i style="left:' + (c.x0 + i * c.sx) * 100 + "%;top:" + (c.y0 + j * c.sy) * 100 + "%;width:" + c.w * 100 + "%;height:" + c.h * 100 + '%"></i>';
   el.innerHTML = g; el.hidden = false;
 }
+/* Verschobener Zuschnitt: pro Foto und Format (d Türchen, q/h Titelbild) die Lage im Bild, 0 = links/oben, 0,5 = Mitte,
+   1 = rechts/unten. Nur eine Vorgabe: export.py schneidet nichts, es schreibt die Werte nach calendar-photos/crops.json. */
+let cropGeo = null, drag = null;
+const cpGet = (p, k) => (S.cp[p.f] || {})[k] || [.5, .5];
+const clamp01 = v => Math.max(0, Math.min(1, v));
+$("crop").addEventListener("pointerdown", e => { if (!cur || !cropGeo) return; drag = {x: e.clientX, y: e.clientY, k: effCrop(cur), p0: cpGet(cur, effCrop(cur))}; $("crop").setPointerCapture(e.pointerId); e.preventDefault(); });
+$("crop").addEventListener("pointermove", e => {
+  if (!drag || !cur) return; const g = cropGeo, fw = g.W - g.w, fh = g.H - g.h;
+  const pos = [fw > 1 ? clamp01(drag.p0[0] + (e.clientX - drag.x) / fw) : .5, fh > 1 ? clamp01(drag.p0[1] + (e.clientY - drag.y) / fh) : .5];
+  (S.cp[cur.f] = S.cp[cur.f] || {})[drag.k] = pos.map(v => Math.round(v * 1000) / 1000); drawCrop();
+});
+const endDrag = () => { if (drag) { drag = null; save(); } };
+$("crop").addEventListener("pointerup", endDrag); $("crop").addEventListener("pointercancel", endDrag);
+$("crop").addEventListener("dblclick", () => { if (!cur || !S.cp[cur.f]) return; delete S.cp[cur.f][effCrop(cur)]; if (!Object.keys(S.cp[cur.f]).length) delete S.cp[cur.f]; save(); drawCrop(); });
 function setCrop(m) { cropMode = m; S.crop = m; $("lCrop").value = m; save(); drawCrop(); }
 let lastVis = null;
 function backToVis() { if (cur && lastVis && !vis.includes(cur)) openLb(lastVis); }
@@ -642,7 +658,9 @@ function openEx() {
   const over = list.length > MAX, miss = [over ? L("Das sind " + (list.length - MAX) + " Bilder zu viel. Entferne sie aus den Türchen, dann gibt es hier den Befehl.", "That is " + (list.length - MAX) + " photos too many. Remove them from the doors, and the command appears here.") : list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
   if (D.key) miss.push(L("Das ist die Demo. Der Befehl zeigt nur, wie er aussieht, und wird nicht ausgeführt.", "This is the demo. The command only shows what it looks like and does not run."));
   $("exwarn").textContent = miss.join(" "); $("exwarn").hidden = !miss.length;
-  const args = (cov ? [shq(expName(cov, "00_cover") + "=" + cov.f)] : []).concat(list.map((p, k) => shq(expName(p, String(k + 1).padStart(2, "0")) + "=" + p.f)));
+  const crop = (t, p, k) => { const c = (S.cp[p.f] || {})[k]; return c && (c[0] !== .5 || c[1] !== .5) ? [shq("--crop=" + t + "=" + c[0] + "," + c[1])] : []; };
+  const one = (p, pre, k) => { const t = expName(p, pre); return [shq(t + "=" + p.f)].concat(crop(t, p, k)); };
+  const args = (cov ? one(cov, "00_cover", isQuer(cov) ? "q" : "h") : []).concat(...list.map((p, k) => one(p, String(k + 1).padStart(2, "0"), "d")));
   $("excmd").value = over ? "" : list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
   $("exAll").hidden = !(sel.size > 0 && sel.size <= MAX && fin.size < sel.size);
   $("exgrid").innerHTML = (cov ? tile(cov, "x") : "") + list.map(p => tile(p, "x")).join("");
@@ -780,7 +798,7 @@ $("bTheme").onclick = () => { S.plain = !S.plain; document.body.classList.toggle
 $("bEx").onclick = openEx; $("exClose").onclick = () => { $("ex").hidden = true; };
 $("exCopy").onclick = () => { $("excmd").select(); try { navigator.clipboard.writeText($("excmd").value); } catch (e) { document.execCommand("copy"); } $("exCopy").textContent = L("Kopiert ✓", "Copied ✓"); setTimeout(() => $("exCopy").textContent = L("Befehl kopieren", "Copy command"), 1500); };
 $("exJson").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(state(), null, 1)], {type: "application/json"})); a.download = L("adventkalender-auswahl.json", "advent-calendar-selection.json"); a.click(); };
-$("exLoad").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const j = JSON.parse(r.result); sel = new Set((j.sel || []).filter(x => byName.has(x))); rej = new Set((j.rej || []).filter(x => byName.has(x))); fin = new Set((j.fin || []).filter(x => sel.has(x))); cover = byName.has(j.cover) ? j.cover : ""; seen = new Set(j.seen || []); lastSeen = j.last || ""; if (j.pver === D.pver) { S.names = j.names || {}; S.merge = j.merge || {}; S.hide = j.hide || []; } if (j.pl && j.pl.merge && j.pl.names) S.pl = j.pl; save(); applyMerge(); applyPlaces(); render(); openEx(); } catch (err) { alert(L("Datei nicht lesbar.", "Can't read this file.")); } }; r.readAsText(f); };
+$("exLoad").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const j = JSON.parse(r.result); sel = new Set((j.sel || []).filter(x => byName.has(x))); rej = new Set((j.rej || []).filter(x => byName.has(x))); fin = new Set((j.fin || []).filter(x => sel.has(x))); cover = byName.has(j.cover) ? j.cover : ""; seen = new Set(j.seen || []); lastSeen = j.last || ""; if (j.pver === D.pver) { S.names = j.names || {}; S.merge = j.merge || {}; S.hide = j.hide || []; } if (j.pl && j.pl.merge && j.pl.names) S.pl = j.pl; if (j.cp && typeof j.cp === "object") S.cp = j.cp; save(); applyMerge(); applyPlaces(); render(); openEx(); } catch (err) { alert(L("Datei nicht lesbar.", "Can't read this file.")); } }; r.readAsText(f); };
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("mp").hidden) { closePops(); return; }
   if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;

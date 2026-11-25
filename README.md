@@ -193,11 +193,13 @@ The page reads from top to bottom like this:
 - **People and Places:** click a chip to see only those photos. "All ▾" at the end of a row opens a list with a search box, and
   ✎ next to it lets you rename entries and merge the ones that belong together.
 - **Star:** click ☆ on a photo to put it on the shortlist. There is no limit.
-- **Door:** a + then appears under the star. Click it to make the photo one of the 24 doors. The 25th door is refused,
-  and doors are numbered by date.
+- **Door:** a + then appears under the star. Click it to make the photo one of the 24 doors. You can pick more than 24
+  while you decide; the counter then shows how many are too many, and the export waits until 24 are left. Doors are
+  numbered by date.
 - **Large view:** open a photo to compare it with the rest of its burst, moment, place or person, to make it the
   cover, or to reject it. For a door, a square shows roughly what the door will show. For the cover, dashed squares
-  show where the doors sit. You set the final crop in your photo service's software.
+  show where the doors sit. Drag the frame to move the crop, double-click it to centre it again. You set the
+  final crop in your photo service's software.
 
 The scripts sort out blurry and dark photos, duplicates and screenshots. The settings menu (⚙) shows them again. Your
 choices are saved in the browser's local storage, and the URL keeps filters and scroll position. "Save selection as
@@ -206,7 +208,8 @@ file" in the export dialog writes a backup.
 When you are done, Export … gives you a command for Terminal (Mac) or Command Prompt (Windows). It runs `export.py`,
 which copies the 25 photos as JPEG into `calendar-photos/` next to the scripts and leaves the originals alone. The
 files are named `00_cover_…` and `01_…` to `24_…`, so the number is the door. If you export again, the new photos
-replace the old ones. Then drag the photos into your photo service's software and check the crop of every door there.
+replace the old ones. `calendar-photos/crops.json` lists where each crop sits, for the [recipe](RECIPE.md) that fills
+a project file. Then drag the photos into your photo service's software and check the crop of every door there.
 
 To let an AI agent put them into the calendar project for you, see [RECIPE.md](RECIPE.md).
 
