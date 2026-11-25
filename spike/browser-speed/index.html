@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; img-src 'self' blob: data:; worker-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Picker im Browser: Tempo-Test</title>
+<style>
+  :root { color-scheme: light dark; font: 15px/1.45 system-ui, sans-serif; }
+  body { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+  button, select { font: inherit; padding: 6px 12px; margin: 0 8px 8px 0; }
+  table { border-collapse: collapse; margin: 12px 0; }
+  td, th { border-bottom: 1px solid #8884; padding: 4px 12px 4px 0; text-align: left; font-variant-numeric: tabular-nums; }
+  pre { background: #8881; padding: 12px; white-space: pre-wrap; }
+  .muted { opacity: .7; }
+</style>
+</head>
+<body>
+<h1>Picker im Browser: Tempo-Test</h1>
+<p>Diese Seite rechnet die Schritte von <code>process.py</code> im Browser nach: Bild lesen, EXIF, dekodieren, auf 1600 px verkleinern,
+Vorschau und Vorschaubild im Browser-Speicher (OPFS) ablegen, Schärfe, Helligkeit, dHash, Gesichter (YuNet) und Gesichts-Merkmale (SFace).
+Nichts verlässt diesen Tab. Die Testbilder sind synthetisch.</p>
+<p>
+  <label>Rechenweg <select id="backend"><option value="wasm">WebAssembly (CPU)</option><option value="webgpu">WebGPU</option></select></label>
+  <label>Worker <select id="workers"><option>1</option><option>2</option><option selected>4</option><option>8</option></select></label>
+</p>
+<p>
+  <button id="jpeg">Testbilder JPEG</button>
+  <button id="heic">Testbilder HEIC</button>
+  <button id="iphone">Echte iPhone-HEIC</button>
+  <label><button id="own" type="button">Eigenen Ordner messen …</button><input id="dir" type="file" webkitdirectory multiple hidden></label>
+</p>
+<p class="muted">„Eigenen Ordner messen“ zeigt nur Zeiten und Zählungen, keine Dateinamen und keine Bilder.</p>
+<p id="status">Bereit.</p>
+<div id="out"></div>
+<p><button id="copy" hidden>Ergebnis kopieren</button></p>
+<pre id="text" hidden></pre>
+<script type="module" src="app.js"></script>
+</body>
+</html>

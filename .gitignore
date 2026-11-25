@@ -13,3 +13,5 @@ __pycache__/
 .venv/
 .venv-look/
 .DS_Store
+spike/browser-speed/testset/
+spike/browser-speed/vendor/
