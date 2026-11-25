@@ -18,6 +18,9 @@ Each version is a [release on GitHub](https://github.com/grinser/advent-photo-pi
 - In the large view you can drag the crop frame to the part of the photo you want, and double-click it to centre it
   again. The position is saved per photo, separately for the door and the cover. The export still writes whole photos
   and lists every crop in `calendar-photos/crops.json`, which the recipe uses to fill the project file.
+- You can choose door numbers yourself. In the large view, fix a door to a number; in the Doors view, drag one door
+  onto another to swap their numbers. All other doors keep filling the free numbers by date, and the export uses
+  these numbers.
 
 ### Changed
 

@@ -195,7 +195,8 @@ The page reads from top to bottom like this:
 - **Star:** click ☆ on a photo to put it on the shortlist. There is no limit.
 - **Door:** a + then appears under the star. Click it to make the photo one of the 24 doors. You can pick more than 24
   while you decide; the counter then shows how many are too many, and the export waits until 24 are left. Doors are
-  numbered by date.
+  numbered by date. To change that, fix a number in the large view, or drag one door onto another in the Doors view
+  to swap them.
 - **Large view:** open a photo to compare it with the rest of its burst, moment, place or person, to make it the
   cover, or to reject it. For a door, a square shows roughly what the door will show. For the cover, dashed squares
   show where the doors sit. Drag the frame to move the crop, double-click it to centre it again. You set the
