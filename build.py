@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Step 3: bursts, moments, places and people; writes data.js for the page. Local."""
-import os, sys, json, base64, math, collections, time
+import os, sys, json, base64, math, collections, time, re
 os.environ.setdefault("OPENCV_LOG_LEVEL", "ERROR")   # hides "Targets are not supported" warnings
 import numpy as np, cv2
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-from common import photos_dir
+from common import photos_dir, extra_dirs
 SRC = photos_dir()   # PHOTOS, or the folder process.py used last
+EXTRA = extra_dirs()   # more folders, e.g. EXTRA="partner=/path/to/folder"; their photos are named "@partner/..."
 if not os.path.exists(os.path.join(OUT, "work", "results.jsonl")): raise SystemExit("Run  python process.py  first.")
 DEBUG = os.environ.get("DEBUG")
 HOME_CC = os.environ.get("HOME_COUNTRY", "")   # country code shown without suffix in place names, e.g. AT
@@ -18,6 +19,46 @@ for l in open(os.path.join(OUT, "work", "results.jsonl")):
     if r.get("skip") or r.get("err") or "dh" not in r: continue
     rows.append(r)
 rows = list({r["f"]: r for r in rows}.values())
+
+# --- Weitere Quellen (EXTRA): WhatsApp-Bilder erkennen, und Bilder, die schon in PHOTOS liegen ("von mir")
+# WhatsApp loescht EXIF (keine Kamera, kein Datum) und verkleinert auf feste Groessen; Android benennt IMG-YYYYMMDD-WA0001.
+WA_NAME = re.compile(r"(^|/)IMG-\d{8}-WA\d+", re.I)
+WA_SIZES = {int(x) for x in os.environ.get("WA_SIZES", "1280,1600,2048,2560,4096").split(",")}
+for r in rows:
+    r["src"] = r["f"][1:].split("/", 1)[0] if r["f"].startswith("@") else ""
+    r["wa"] = bool(WA_NAME.search(r["f"])) or (not r["cam"] and bool(r.get("nodate")) and not r["f"].lower().endswith(".png")
+                                               and max(r["w"], r["h"]) in WA_SIZES)
+n_mine = 0
+if any(r["src"] for r in rows):
+    try:
+        import imagehash
+        from PIL import Image
+    except ImportError:
+        imagehash = None
+        print("Photos from EXTRA are not compared with yours: run  python -m pip install -r requirements.txt  first.")
+    if imagehash:
+        # Perceptual hash (256 bit) of each preview, kept in work/phash.json; survives WhatsApp's resizing and compression
+        hp = os.path.join(OUT, "work", "phash.json")
+        cache = json.load(open(hp)) if os.path.exists(hp) else {}
+        for r in rows:
+            if r["f"] not in cache:
+                try: cache[r["f"]] = str(imagehash.phash(Image.open(os.path.join(OUT, "prev", r["f"] + ".jpg")), hash_size=16))
+                except Exception: pass
+        json.dump(cache, open(hp, "w"))
+        bits = lambda h: np.unpackbits(np.frombuffer(bytes.fromhex(h), np.uint8))
+        own = [r for r in rows if not r["src"] and r["f"] in cache]
+        WA_T = int(os.environ.get("WA_T", 24))   # erlaubte Abweichung in Bits von 256
+        if own:
+            B = np.stack([bits(cache[r["f"]]) for r in own]).astype(bool)
+            AR = np.array([r["w"] / r["h"] for r in own])
+            for r in rows:
+                if not r["src"] or r["f"] not in cache: continue
+                d = (B != bits(cache[r["f"]]).astype(bool)).sum(1)
+                d[np.abs(AR - r["w"] / r["h"]) > 0.02] = 999   # WhatsApp behaelt das Seitenverhaeltnis
+                k = int(d.argmin())
+                if d[k] <= WA_T:
+                    o = own[k]; r["mine"] = o["f"]; n_mine += 1
+                    if r.get("nodate"): r["t"] = o["t"]   # das Original kennt den Aufnahmezeitpunkt
 rows.sort(key=lambda r: (r["t"], r["f"]))
 N = len(rows)
 ham = lambda a, b: bin(int(a, 16) ^ int(b, 16)).count("1")
@@ -58,7 +99,9 @@ for r in rows:
     else:
         if r["sh"] < float(os.environ.get("BLUR_SH", 60)) and r["shm"] < float(os.environ.get("BLUR_SHM", 200)): fl.append("unscharf")
         if r["br"] < 22: fl.append("dunkel")
-        if not r["cam"]: fl.append("import")
+        if r["wa"]: fl.append("whatsapp")
+        elif not r["cam"]: fl.append("import")
+    if r.get("mine"): fl.append("vonmir")
     r["fl"] = fl
 
 # --- Serien (aehnliche Bilder kurz hintereinander) und Momente
@@ -75,7 +118,7 @@ for r in rows:
     r["g"] = g; prev = r
 groups = collections.defaultdict(list)
 for r in rows: groups[r["g"]].append(r)
-bad = {"unscharf", "dunkel", "screenshot", "duplikat"}
+bad = {"unscharf", "dunkel", "screenshot", "duplikat", "vonmir"}
 for gr in groups.values():
     ok = [r for r in gr if not bad & set(r["fl"])]
     if len(ok) > 1:
@@ -190,7 +233,7 @@ if F:
         persons.append({"id": pid, "c": len(ph[l]), "n": n})
 
 photos = [{"f": r["f"], "t": r["t"], "g": r["g"], "m": r["m"], "p": r.get("p", -1), "s": r["s"], "fl": r["fl"],
-           "pe": sorted(r.get("pe", [])), "nf": len([f for f in r.get("fa", []) if f["c"] >= 0.88]), "na": max(r.get("nlo", 0), len(r.get("fa", []))), "w": r["w"], "h": r["h"], "lk": r["lk"], "ec": r["ec"]} for r in rows]
+           "pe": sorted(r.get("pe", [])), "nf": len([f for f in r.get("fa", []) if f["c"] >= 0.88]), "na": max(r.get("nlo", 0), len(r.get("fa", []))), "w": r["w"], "h": r["h"], "lk": r["lk"], "ec": r["ec"], **({"mine": r["mine"]} if r.get("mine") else {})} for r in rows]
 import hashlib
 pver = hashlib.md5(json.dumps([[p["f"], p["pe"]] for p in photos if p["pe"]]).encode()).hexdigest()[:10]
 merge0 = {}
@@ -199,7 +242,7 @@ if os.path.exists(mp_):
     mj = json.load(open(mp_))
     if mj.get("pver") == pver: merge0 = mj.get("merge", {})
     else: print("person_merge.json no longer matches the groups and is ignored")
-data = {"merge0": merge0, "pver": pver, "src": SRC, "out": OUT, "py": sys.executable, "sep": os.sep, "gen": time.strftime("%Y-%m-%d %H:%M"), "photos": photos, "places": places, "persons": persons}
+data = {"merge0": merge0, "pver": pver, "src": SRC, "extra": EXTRA, "out": OUT, "py": sys.executable, "sep": os.sep, "gen": time.strftime("%Y-%m-%d %H:%M"), "photos": photos, "places": places, "persons": persons}
 open(os.path.join(OUT, "data.js"), "w", encoding="utf-8").write("window.DATA=" + json.dumps(data, separators=(",", ":")) + ";")
 c = collections.Counter(x for r in rows for x in r["fl"])
 n_cand = sum(1 for r in rows if not (bad | {"serie"}) & set(r["fl"]))
@@ -207,4 +250,8 @@ plural = lambda n, one, many: "%d %s" % (n, one if n == 1 else many)
 print("%s, %s, %s, %s. Now open index.html in your browser." % (
     plural(N, "photo", "photos"), plural(n_cand, "candidate", "candidates"), plural(len(places), "place", "places"),
     plural(len(persons), "person", "people")))
+for label in EXTRA:
+    rs = [r for r in rows if r["src"] == label]
+    print("From %s: %s, %d of them WhatsApp images, %d sent from your own photos (hidden, filter: Source)." % (
+        label, plural(len(rs), "photo", "photos"), sum(1 for r in rs if r["wa"]), sum(1 for r in rs if r.get("mine"))))
 if DEBUG: print("flags:", dict(c), "| bursts:", len(groups), "| moments:", m + 1, "| faces:", len(F))

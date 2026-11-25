@@ -1,8 +1,9 @@
 """Shared helpers: the photo folder, the model check, progress output, and the network block."""
-import os, sys, socket
+import os, sys, json, socket
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAVED = os.path.join(HERE, "work", "photos.txt")
+SAVED_EXTRA = os.path.join(HERE, "work", "extra.json")
 WIN = sys.platform == "win32"
 
 
@@ -20,6 +21,36 @@ def photos_dir(required=True):
         what = "PHOTOS is not set." if not raw else "No folder at " + path + "."
         sys.exit(what + " Point it at your photo folder first, for example:\n  " + hint)
     return path
+
+
+def extra_dirs():
+    """More photo folders from EXTRA, as {label: folder}: EXTRA="partner=/path/to/folder" (several with ;).
+    Their photos are named "@label/path" in the results, so the names from PHOTOS stay the same.
+    Falls back to the folders process.py used last."""
+    raw = os.environ.get("EXTRA", "").strip()
+    if not raw:
+        if os.path.exists(SAVED_EXTRA):
+            return json.load(open(SAVED_EXTRA, encoding="utf-8"))
+        return {}
+    out = {}
+    for part in raw.split(";"):
+        if not part.strip(): continue
+        if "=" not in part: sys.exit('EXTRA must look like  partner=/path/to/folder , not ' + part.strip())
+        label, path = part.split("=", 1)
+        label = "".join(c for c in label.strip().lower() if c.isalnum() or c in "-_")
+        path = os.path.abspath(os.path.expanduser(clean_path(path)))
+        if not label: sys.exit("EXTRA needs a short name before the =, for example  partner=" + path)
+        if not os.path.isdir(path): sys.exit("No folder at " + path + " (from EXTRA).")
+        out[label] = path
+    return out
+
+
+def source_path(name, src, extra):
+    """Full path of a photo name from the results: "@label/x.jpg" lives in the EXTRA folder, the rest in PHOTOS."""
+    if name.startswith("@"):
+        label, rest = name[1:].split("/", 1)
+        return os.path.join(extra[label], *rest.split("/"))
+    return os.path.join(src, *name.split("/"))
 
 
 def interactive():

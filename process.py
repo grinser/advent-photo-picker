@@ -7,11 +7,13 @@ from PIL import Image, ImageOps
 import pillow_heif
 pillow_heif.register_heif_opener()
 from multiprocessing import Pool
-from common import photos_dir, need_models, progress, outside_photos, interactive, ask
+from common import photos_dir, need_models, progress, outside_photos, interactive, ask, extra_dirs, source_path, SAVED_EXTRA
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 SRC = photos_dir()
 outside_photos(OUT, SRC)
+EXTRA = extra_dirs()   # more photo folders, e.g. EXTRA="partner=/path/to/folder"
+for _d in EXTRA.values(): outside_photos(OUT, _d)
 # START: first day to include (YYYY-MM-DD), default one year back
 START_FILE = os.path.join(OUT, "work", "start.txt")
 START = os.environ.get("START", "").strip().strip('"')
@@ -44,7 +46,7 @@ def dms(v, ref):
 def work(name):
     r = {"f": name}
     try:
-        p = os.path.join(SRC, name)
+        p = source_path(name, SRC, EXTRA)
         st = os.stat(p)
         im = Image.open(p)
         ex = im.getexif()
@@ -115,15 +117,16 @@ def work(name):
         r["err"] = str(e)[:120]
     return r
 
-def photo_files():
+def photo_files(src=None, prefix=""):
     """Photos in SRC and its subfolders, as paths relative to SRC with / as separator."""
-    for d, dirs, files in os.walk(SRC):
+    src = src or SRC
+    for d, dirs, files in os.walk(src):
         # skip hidden folders and photo libraries, whose inner copies would show up twice
         dirs[:] = sorted(x for x in dirs if not x.startswith(".") and not x.endswith((".photoslibrary", ".photolibrary")))
-        rel = os.path.relpath(d, SRC).replace(os.sep, "/")
+        rel = os.path.relpath(d, src).replace(os.sep, "/")
         for f in files:
             if os.path.splitext(f)[1].lower() in EXT and not f.startswith("._"):
-                yield f if rel == "." else rel + "/" + f
+                yield prefix + (f if rel == "." else rel + "/" + f)
 
 def main():
     need_models("yunet.onnx", "sface.onnx")
@@ -140,14 +143,16 @@ def main():
             except Exception: pass
     pre = START_T - 20 * 86400
     found = list(photo_files())
-    names = sorted(f for f in found if f not in done and os.path.getmtime(os.path.join(SRC, f)) >= pre)
+    for label, d in EXTRA.items(): found += photo_files(d, "@" + label + "/")
+    names = sorted(f for f in found if f not in done and os.path.getmtime(source_path(f, SRC, EXTRA)) >= pre)
     total = len(names) + len(done)
     if not total:
         sys.exit("No photos from " + START + " on in " + SRC + "." + (
             " The folder has %d older photos. Check START." % len(found) if found else " Check the folder."))
     open(saved, "w", encoding="utf-8").write(SRC)
+    json.dump(EXTRA, open(SAVED_EXTRA, "w", encoding="utf-8"))
     open(START_FILE, "w").write(START)
-    print("%d photos in %s from %s on, %d done earlier." % (total, SRC, START, len(done)))
+    print("%d photos in %s%s from %s on, %d done earlier." % (total, SRC, "".join(" + " + l for l in EXTRA), START, len(done)))
     n = len(done)
     with open(RES, "a") as out, Pool(4, init) as pool:
         for r in pool.imap_unordered(work, names, chunksize=4):

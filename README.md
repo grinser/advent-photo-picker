@@ -162,6 +162,24 @@ python build.py
 
 Set `HOME_COUNTRY` (for example `AT`) before `build.py` to drop the country code from place names at home.
 
+### Photos from a second person
+
+Set `EXTRA` to add the photos of someone else, for example a partner, as a second source. Your `PHOTOS` stay as they
+are, and so do your picks in the browser. Give the source a short name before the `=`; several sources are separated
+by `;`.
+
+```sh
+export EXTRA="partner=$HOME/Pictures/partner-export"   # Windows: set EXTRA=partner=C:\Users\you\Pictures\partner
+python process.py && python build.py
+```
+
+`process.py` reads only the new photos. `build.py` then marks WhatsApp images (no camera data, no date and a typical
+WhatsApp size, or a name like `IMG-20250101-WA0001`) and compares every photo of the second source with yours
+(perceptual hash with [ImageHash](https://github.com/JohannesBuchner/imagehash) and the same aspect ratio). A photo
+that matches one of yours is one you sent, so it is sorted out as "sent by you" and takes the date of your original.
+In the page, Filter › Source shows all photos, only yours, only the other person's, or the ones you sent. `WA_T`
+(default 24 of 256 bits) sets how close a match has to be. Only your photos from `START` on are compared.
+
 ## Use the picker
 
 The page reads from top to bottom like this:
