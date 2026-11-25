@@ -578,14 +578,34 @@ function lbInfo() {
   $("lBack").hidden = !(lastVis && !vis.includes(p));
   if (lastVis && !vis.includes(p)) $("lBack").textContent = L("↩ Zurück zur Galerie-Ansicht (Bild ", "↩ Back to the gallery view (photo ") + (vis.indexOf(lastVis) + 1) + ")";
 }
+/* Der Streifen rechts bleibt ruhig: Steht das neue Bild schon im Streifen (Klick darin, Pfeiltaste), bleibt die Liste
+   gleich und der Streifen scrollt nur, wenn das Bild sonst aus dem Blick gerät. Neu aufgebaut und zentriert wird er nur
+   beim Öffnen und beim Wechsel des Reiters; läuft man mit den Pfeiltasten aus der Liste hinaus, bleibt das Bild an
+   seiner Höhe. */
+let stripState = null;  /* {tab, list, total} of the strip as shown */
 function lbStrip() {
-  const CAP = 300; let r = related(cur); const total = r.length;
-  if (r.length > CAP) { const k = r.findIndex(q => q.i >= cur.i), a = Math.max(0, Math.min(k - CAP / 2, r.length - CAP)); r = r.slice(a, a + CAP); }
+  const st = $("strip"), prev = stripState, keep = prev && prev.tab === tab && prev.list.includes(cur);
+  let r, total;
+  if (keep) { r = prev.list; total = prev.total; }
+  else {
+    const CAP = 300; r = related(cur); total = r.length;
+    if (r.length > CAP) { const k = r.findIndex(q => q.i >= cur.i), a = Math.max(0, Math.min(k - CAP / 2, r.length - CAP)); r = r.slice(a, a + CAP); }
+  }
   const note = {n: L("Gleiche Serie und die Bilder direkt davor und danach.", "Same burst and the photos right before and after."), m: L("Bilder vom selben Zeitpunkt (Pausen unter 2 Stunden).", "Photos from the same moment (gaps under 2 hours)."), p: cur.p < 0 ? L("Dieses Bild hat keine GPS-Daten.", "This photo has no GPS data.") : L("Bilder vom selben Ort: ", "Photos from the same place: ") + D.places[cur.p].n + ".", pe: cur.pe.length ? L("Bilder mit denselben Personen.", "Photos with the same people.") : L("Keine bekannte Person auf diesem Bild.", "No known person in this photo.")}[tab];
   $("stripinfo").textContent = note + " " + total + L(" Bilder", " photos") + (total > r.length ? " (" + r.length + L(" angezeigt)", " shown)") : "") + L(", einschließlich der aussortierten Bilder.", ", including sorted-out ones.");
-  $("strip").innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
-  document.querySelectorAll("#tabs button").forEach(b => b.className = b.dataset.tab === tab ? "on" : "");
-  const st = $("strip"), c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
+  const b = st.getBoundingClientRect(), o = st.querySelector(".cur"), oldTop = o ? o.getBoundingClientRect().top - b.top : null, sc = st.scrollTop;
+  st.innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
+  stripState = {tab, list: r, total};
+  document.querySelectorAll("#tabs button").forEach(x => x.className = x.dataset.tab === tab ? "on" : "");
+  const c = st.querySelector(".cur"); if (!c) return;
+  /* scroll the strip only, not the page */
+  const top = () => c.getBoundingClientRect().top - b.top;
+  if (keep) st.scrollTop = sc;
+  else if (prev && prev.tab === tab && oldTop !== null) st.scrollTop += top() - oldTop;
+  else { st.scrollTop += top() - (b.height - c.offsetHeight) / 2; return; }
+  const t = top(), pad = 6;
+  if (t < pad) st.scrollTop += t - pad;
+  else if (t + c.offsetHeight > b.height - pad) st.scrollTop += t + c.offsetHeight - b.height + pad;
 }
 /* ---------- Zuschnitt-Vorschau. Maße aus dem BIPA/CEWE-Projekt "Adventskalender mit Türchenbildern & kinder, Querformat" abgelesen:
    Titel 30,5 x 21 cm, 6 x 4 quadratische Türchen (je ca. 4 cm). Hochformat-Raster ist nur gedreht geschätzt. Zuschnitt ist mittig; im Editor lässt er sich verschieben. ---------- */
@@ -610,7 +630,7 @@ function openLb(p) { cur = p; if (vis.includes(p)) lastVis = p; seen.add(p.f); l
    (aussortiert, schon gesehen, aus dem Streifen rechts geöffnet), das zeitlich nächste Bild der Galerie */
 function nearestVis(p) { let best = null, d = Infinity; vis.forEach(q => { const x = Math.abs(q.t - p.t) * 1e6 + Math.abs(q.i - p.i); if (x < d) { d = x; best = q; } }); return best; }
 function closeLb() {
-  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); render();
+  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; stripState = null; $("lbimg").removeAttribute("src"); render();
   if (!last) return;
   const near = vis.includes(last) ? last : nearestVis(last);
   if (near) { gc = near; anchor = near.f; markGc(); scrollToFile(near.f, true); writeHash(); }
