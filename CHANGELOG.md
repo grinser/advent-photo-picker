@@ -20,6 +20,8 @@ Each version is a [release on GitHub](https://github.com/grinser/advent-photo-pi
 
 ### Fixed
 
+- The doors view always shows all doors and the cover. Before, a month, place, person, orientation or source filter
+  could hide some of them, often the cover.
 - In the large view, the photos on the right no longer overlap when a burst has many photos.
 - Closing the large view scrolls the gallery back to the last photo you looked at. If that photo is not in the
   gallery (sorted out, already seen, or opened from the row on the right), it scrolls to the nearest photo by time.

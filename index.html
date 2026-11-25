@@ -364,6 +364,7 @@ const F = {month: "", place: "", person: "", out: false, only: false, rej: false
 let vis = [], cur = null, tab = "n";
 
 function match(p) {
+  if (F.fin) return fin.has(p.f) || p.f === cover;  /* the doors view always shows every door and the cover, whatever else is filtered */
   if (F.month && ym(p) !== F.month) return false;
   if (F.place !== "" && (F.place === "x" ? !p.eo : p.eo || p.ep !== +F.place)) return false;
   if (F.person !== "" && !p.pe.includes(+F.person)) return false;
@@ -371,7 +372,6 @@ function match(p) {
   if (F.ori && isQuer(p) !== (F.ori === "q")) return false;
   if (F.src === "wa") { if (!p.fl.includes("vonmir")) return false; }
   else if (F.src && srcOf(p) !== F.src.slice(2)) return false;
-  if (F.fin) return fin.has(p.f) || p.f === cover;
   if (F.unseen && seen.has(p.f) && !F.only) return false;
   if (F.nope && hasFace(p)) return false;
   if (F.only) return sel.has(p.f);
