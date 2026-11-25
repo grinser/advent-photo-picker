@@ -64,6 +64,12 @@ h2 .hs{color:var(--ac);font-size:13px;font-weight:600}
 #shown{background:var(--btn);border-radius:12px;padding:3px 12px;font-weight:600;margin-right:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
 .t{position:relative;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden;cursor:pointer;border:3px solid transparent}
+#main .t[draggable=true]{cursor:grab} #main .t.dragging{opacity:.35}
+#main .t.swap{outline:3px dashed var(--ac);outline-offset:2px}
+#main .t.swap::after{content:attr(data-swap);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:5px 12px;border-radius:999px;font-weight:700;font-size:15px;white-space:nowrap;z-index:3;pointer-events:none}
+#main .t.swapped{animation:swapped 1.4s ease-out}
+@keyframes swapped{0%,40%{box-shadow:0 0 0 5px var(--ac)}100%{box-shadow:0 0 0 0 transparent}}
+#swaphint{margin:10px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap} #main .t .door.pin{box-shadow:inset 0 -4px 0 var(--ac)}
 .t img{width:100%;height:100%;object-fit:cover;display:block}
 .t.out img{opacity:.45}
 .t.rej img{opacity:.25;filter:grayscale(1)}
@@ -414,11 +420,18 @@ function render() {
   const cov = F.fin && cover ? byName.get(cover) : null;
   if (cov) vis = vis.filter(p => p !== cov);
   let h = "";
-  if (F.sort === "t") {
+  const byDoor = F.fin && door.size > 0 && fin.size <= MAX;  /* Türchen-Ansicht: Reihenfolge wie im Kalender, Tauschen verschiebt die Bilder sichtbar */
+  if (byDoor) {  /* das Titelbild kann zugleich ein Türchen sein: dann steht es oben und im Raster */
+    vis.sort((a, b) => (door.get(a.f) || 99) - (door.get(b.f) || 99));
+    const grid = cov && door.has(cov.f) ? vis.concat(cov).sort((a, b) => door.get(a.f) - door.get(b.f)) : vis;
+    h = "<h2>" + L("Türchen", "Doors") + '<span class="n">' + grid.length + L(" von ", " of ") + MAX + "</span></h2><div class='grid'>" + grid.map(p => tile(p)).join("") + "</div>";
+  }
+  else if (F.sort === "t") {
     let k = ""; const nm = {}; vis.forEach(p => { const m = ym(p); nm[m] = (nm[m] || 0) + 1; });
     vis.forEach(p => { const m = ym(p); if (m !== k) { h += (k ? "</div>" : "") + "<h2>" + moName(m) + '<span class="n">' + nm[m] + (nm[m] === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + '</span><span class="hs" data-hs="' + m + '"></span></h2><div class=\'grid\'>'; k = m; } h += tile(p); });
     if (k) h += "</div>";
   } else h = '<h2>' + L("Nach Qualität", "By quality") + '<span class="n">' + vis.length + (vis.length === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + "</span></h2><div class='grid'>" + vis.map(p => tile(p)).join("") + "</div>";
+  if (byDoor && door.size > 1) h = '<p class="hint" id="swaphint">' + L("Die Türchen stehen in Kalender-Reihenfolge. Zieh ein Türchen auf ein anderes, dann tauschen die beiden ihre Plätze. Ohne Tausch gilt das Datum.", "The doors are in calendar order. Drag a door onto another to swap their places. Without a swap, the date decides.") + (Object.keys(S.pin).length ? ' <button id="unpin">' + L("Wieder nach Datum ordnen", "Order by date again") + "</button>" : "") + "</p>" + h;
   if (cov) { h = "<h2>" + L("Titelbild", "Cover") + "</h2><div class='grid'>" + tile(cov) + "</div>" + h; vis.unshift(cov); }
   $("main").innerHTML = h || "<p class='hint'>" + (!D.photos.length ? (window.DATA
     ? L("Keine Bilder gefunden. Prüfe PHOTOS und START und starte process.py, arc.py und build.py noch einmal (siehe README).", "No photos found. Check PHOTOS and START, then run process.py, arc.py and build.py again (see README).")
@@ -444,7 +457,7 @@ function fillMore() {
 }
 function head() {
   calcDoors();
-  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : fin.has(p.f) ? "✓" : "+"; });
+  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : fin.has(p.f) ? "✓" : "+"; el.classList.toggle("pin", !!S.pin[p.f]); el.title = S.pin[p.f] ? L("Nummer festgelegt", "Number fixed") : el.title; });
   const n = fin.size, viewAll = !F.only && !F.fin;
   $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (n > MAX ? L(" · " + (n - MAX) + " zu viel", " · " + (n - MAX) + " too many") : "") + (cover ? L(" +Titel", " +cover") : ""); $("nFin").className = n > MAX ? "over" : "";
   $("bAll").className = viewAll ? "on" : ""; $("bFin").title = L("Nur die " + MAX + " Türchen und das Titelbild zeigen. Titelbild: " + (cover ? "gewählt" : "fehlt noch"), "Show only the " + MAX + " doors and the cover. Cover: " + (cover ? "chosen" : "missing"));
@@ -804,10 +817,21 @@ if (EXTRA.length) {
 $("lCrop").value = cropMode; $("lCrop").onchange = e => { setCrop(e.target.value); e.target.blur(); };
 $("lbimg").addEventListener("load", drawCrop); window.addEventListener("resize", drawCrop);
 $("lFin").onclick = () => toggleFin(cur); let dragDoor = null;
-$("main").addEventListener("dragstart", e => { const t = e.target.closest && e.target.closest(".t.fin"); if (!t || !F.fin) return; dragDoor = P[+t.dataset.i]; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragDoor.f); });
-$("main").addEventListener("dragover", e => { if (dragDoor && e.target.closest(".t.fin")) e.preventDefault(); });
-$("main").addEventListener("drop", e => { const t = e.target.closest(".t.fin"); if (!dragDoor || !t) return; e.preventDefault(); swapDoors(dragDoor, P[+t.dataset.i]); dragDoor = null; });
-$("main").addEventListener("dragend", () => { dragDoor = null; });
+const clearSwap = () => document.querySelectorAll("#main .t.swap, #main .t.dragging").forEach(el => { el.classList.remove("swap", "dragging"); delete el.dataset.swap; });
+$("main").addEventListener("dragstart", e => { const t = e.target.closest && e.target.closest(".t.fin"); if (!t || !F.fin || !door.size) return; dragDoor = P[+t.dataset.i]; t.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragDoor.f); });
+$("main").addEventListener("dragover", e => {
+  if (!dragDoor) return; const t = e.target.closest(".t.fin"), q = t && P[+t.dataset.i];
+  if (!t || q === dragDoor) { document.querySelectorAll("#main .t.swap").forEach(el => { el.classList.remove("swap"); delete el.dataset.swap; }); return; }
+  e.preventDefault(); e.dataTransfer.dropEffect = "move";
+  if (!t.classList.contains("swap")) { document.querySelectorAll("#main .t.swap").forEach(el => { el.classList.remove("swap"); delete el.dataset.swap; }); t.classList.add("swap"); t.dataset.swap = L("Nr. ", "No. ") + door.get(dragDoor.f) + " ⇄ " + door.get(q.f); }
+});
+$("main").addEventListener("drop", e => {
+  const t = e.target.closest(".t.fin"); if (!dragDoor || !t) return; e.preventDefault();
+  const a = dragDoor, b = P[+t.dataset.i]; dragDoor = null; clearSwap(); swapDoors(a, b);
+  [a, b].forEach(p => { const el = document.querySelector('#main .t[data-i="' + p.i + '"]'); if (el) el.classList.add("swapped"); });
+});
+$("main").addEventListener("dragend", () => { dragDoor = null; clearSwap(); });
+document.addEventListener("click", e => { if (e.target.id === "unpin") { S.pin = {}; save(); calcDoors(); render(); toast(L("Alle Türchen wieder nach Datum.", "All doors are ordered by date again.")); } });
 $("lDoor").onchange = e => { if (cur) pinDoor(cur, +e.target.value); }; $("lCov").onclick = () => toggleCover(cur); $("lBack").onclick = backToVis;
 $("exAll").onclick = () => { sel.forEach(f => fin.add(f)); save(); render(); openEx(); };
 $("sSort").onchange = e => { F.sort = e.target.value; render(); };
