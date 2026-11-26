@@ -13,11 +13,29 @@ Each version is a [release on GitHub](https://github.com/grinser/advent-photo-pi
 
 ## [Unreleased]
 
+### Added
+
+- In the large view you can drag the crop frame to the part of the photo you want, and double-click it to centre it
+  again. The position is saved per photo, separately for the door and the cover. The export still writes whole photos
+  and lists every crop in `calendar-photos/crops.json`, which the recipe uses to fill the project file.
+- You can choose door numbers yourself. The Doors view shows the doors in calendar order; drag one onto another to
+  swap their places, and a preview shows which numbers change. In the large view you can fix a door to a number.
+  All other doors keep filling the free numbers by date, "Order by date again" undoes it, and the export uses these
+  numbers.
+
+### Changed
+
+- The strip next to the large view stays where it is when you click a photo in it, so the photo under the mouse no
+  longer changes. It scrolls only when the current photo would leave the view, and only as far as needed.
+- You can give more than 24 photos a door while you decide. The counter then shows how many are too many, the doors
+  get a ✓ instead of a number, and the export waits until exactly 24 are left. The numbers return at 24.
+
 ### Fixed
 
 - In the large view, the photos on the right no longer overlap when a burst has many photos.
 - Closing the large view scrolls the gallery back to the last photo you looked at. If that photo is not in the
   gallery (sorted out, already seen, or opened from the row on the right), it scrolls to the nearest photo by time.
+- The Doors view always shows the cover at the top, even when a filter such as month or orientation would hide it.
 
 ## [1.1.0] - 2026-11-25
 

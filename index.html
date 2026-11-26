@@ -25,7 +25,7 @@ button.pri{background:var(--pri);color:var(--pritx);border-color:var(--pri);font
 .mo .st{margin-left:8px}
 .mo small{display:block;font-size:11px;color:var(--mu)}
 .mo.on small{color:#1b1505}
-.mo b.full{color:var(--ok)} .mo.on b.full{color:#1b1505}
+#nFin.over{color:#e8590c} .mo b.full{color:var(--ok)} .mo.on b.full{color:#1b1505}
 .row.one{flex-wrap:nowrap}
 .scrollrow{flex:1;min-width:0;margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 /* rechts neben beiden Zeilen dieselben zwei Knöpfe in derselben Breite: Liste, Bearbeiten */
@@ -64,6 +64,12 @@ h2 .hs{color:var(--ac);font-size:13px;font-weight:600}
 #shown{background:var(--btn);border-radius:12px;padding:3px 12px;font-weight:600;margin-right:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
 .t{position:relative;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden;cursor:pointer;border:3px solid transparent}
+#main .t[draggable=true]{cursor:grab} #main .t.dragging{opacity:.35}
+#main .t.swap{outline:3px dashed var(--ac);outline-offset:2px}
+#main .t.swap::after{content:attr(data-swap);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:5px 12px;border-radius:999px;font-weight:700;font-size:15px;white-space:nowrap;z-index:3;pointer-events:none}
+#main .t.swapped{animation:swapped 1.4s ease-out}
+@keyframes swapped{0%,40%{box-shadow:0 0 0 5px var(--ac)}100%{box-shadow:0 0 0 0 transparent}}
+#swaphint{margin:10px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap} #main .t .door.pin{box-shadow:inset 0 -4px 0 var(--ac)}
 .t img{width:100%;height:100%;object-fit:cover;display:block}
 .t.out img{opacity:.45}
 .t.rej img{opacity:.25;filter:grayscale(1)}
@@ -96,7 +102,7 @@ textarea{width:100%;height:190px;background:#111;color:#cfe;border:1px solid var
 .pc .fs img{width:130px;height:130px;border-radius:8px;object-fit:cover;background:#000}
 .pc input[type=text]{background:#111;color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:5px 8px;font:inherit;width:200px}
 #lbimgw{position:relative;overflow:hidden}
-#crop{position:absolute;box-shadow:0 0 0 4000px rgba(0,0,0,.66);outline:2px solid #fff;pointer-events:none}
+#crop{position:absolute;box-shadow:0 0 0 4000px rgba(0,0,0,.66);outline:2px solid #fff;cursor:move;touch-action:none}
 #crop[hidden]{display:none}
 #crop i{position:absolute;border:1px dashed rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 #lbbadge{z-index:2}
@@ -245,7 +251,7 @@ body.festive #toast{background:var(--candy);box-shadow:inset 0 0 0 1.5px var(--a
     <div id="lbinfo"></div>
     <div class="row">
       <button id="lSel" class="pri">☆ In die Vorauswahl</button>
-      <button id="lFin">Zum Türchen machen</button>
+      <button id="lFin">Zum Türchen machen</button><select id="lDoor" hidden></select>
       <button id="lCov">Als Titelbild</button>
       <button id="lRej">✕ Ablehnen</button>
       <button id="lPrev">←</button><button id="lNext">→</button>
@@ -316,15 +322,16 @@ const srcLabel = v => v === "wa" ? L("von dir per WhatsApp", "sent by you via Wh
 const KEY = D.key || "advent24-v1", MAX = 24;  /* Demo-Daten bringen einen eigenen Schlüssel mit, damit sie die echte Auswahl nicht überschreiben */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-let S = {sel: [], rej: [], fin: [], cover: "", names: {}, merge: {}, hide: [], seen: [], last: "", pl: {merge: {}, names: {}}};
+let S = {cp: {}, pin: {}, sel: [], rej: [], fin: [], cover: "", names: {}, merge: {}, hide: [], seen: [], last: "", pl: {merge: {}, names: {}}};
 try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 if (S.pver !== D.pver) { S.names = {}; S.merge = {}; S.hide = []; S.pver = D.pver; }  /* Personen neu berechnet: alte Namen passen nicht mehr */
 { const m0 = JSON.stringify(D.merge0 || {}); if (S.m0 !== m0) { Object.keys(D.merge0 || {}).forEach(k => { S.merge[k] = D.merge0[k]; }); S.m0 = m0; } }  /* vorgegebene Zusammenlegungen einmal übernehmen */
 const byName = new Map(P.map(p => [p.f, p]));
 let sel = new Set(S.sel.filter(f => byName.has(f))), rej = new Set(S.rej.filter(f => byName.has(f)));
-const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, seen: [...seen], last: lastSeen});
+const state = () => ({sel: [...sel], rej: [...rej], fin: [...fin], cover: cover, names: S.names, merge: S.merge, hide: S.hide, pl: S.pl, pver: S.pver, m0: S.m0, plain: !!S.plain, crop: cropMode, cp: S.cp, pin: S.pin, seen: [...seen], last: lastSeen});
 let seen = new Set(S.seen || []), lastSeen = S.last || "";
-/* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, höchstens 24 Türchen, nach Datum nummeriert) + ein Titelbild (cover) */
+/* Zwei Stufen: Vorauswahl (sel, beliebig viele) -> Finale (fin, Türchen) + ein Titelbild (cover). Das Finale darf mehr als 24
+   Bilder haben (weiches Limit); nummeriert nach Datum wird erst bei höchstens 24, und der Export braucht genau 24. */
 let fin = new Set((S.fin || []).filter(f => sel.has(f))), cover = byName.has(S.cover) ? S.cover : "";
 const isQuer = p => p.w > p.h;
 let toastTimer = 0;
@@ -359,7 +366,20 @@ const gsz = {}; P.forEach(p => gsz[p.g] = (gsz[p.g] || 0) + 1);
 const months = [...new Set(P.map(ym))].sort();
 
 let door = new Map();
-function calcDoors() { door = new Map([...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t).map((p, k) => [p.f, k + 1])); }
+/* Türchennummern: festgepinnte Bilder (S.pin, Datei -> Nummer) behalten ihre Nummer, die übrigen füllen die freien Nummern
+   nach Datum. Tauschen in der Türchen-Ansicht pinnt beide Bilder auf die Nummer des anderen. */
+function calcDoors() {
+  door = new Map(); if (fin.size > MAX) return;
+  const used = new Set();
+  Object.keys(S.pin).forEach(f => { const n = Math.round(+S.pin[f]); S.pin[f] = n; if (!fin.has(f) || !(n >= 1 && n <= MAX) || used.has(n)) delete S.pin[f]; else { door.set(f, n); used.add(n); } });
+  let n = 1; [...fin].filter(f => !door.has(f)).map(f => byName.get(f)).sort((a, b) => a.t - b.t).forEach(p => { while (used.has(n)) n++; door.set(p.f, n); used.add(n); });
+}
+function pinDoor(p, n) {
+  if (!n) delete S.pin[p.f];
+  else { Object.keys(S.pin).forEach(f => { if (S.pin[f] === n && f !== p.f) delete S.pin[f]; }); S.pin[p.f] = n; }
+  changed(p); render();
+}
+function swapDoors(a, b) { const na = door.get(a.f), nb = door.get(b.f); if (!na || !nb || a === b) return; S.pin[a.f] = nb; S.pin[b.f] = na; changed(a); render(); toast(L("Türchen " + na + " und " + nb + " getauscht.", "Doors " + na + " and " + nb + " swapped.")); }
 const F = {month: "", place: "", person: "", out: false, only: false, rej: false, look: false, unseen: false, nope: false, fin: false, ori: "", src: "", sort: "t"};
 let vis = [], cur = null, tab = "n";
 
@@ -390,22 +410,34 @@ function tile(p, extra) {
   if (p.ec > 0) b += '<span class="r" title="' + L("Gesichter mit geschlossenen Augen", "Faces with closed eyes") + '">' + L("Augen zu ", "Eyes closed ") + p.ec + "</span>";
   p.fl.forEach(f => { if (BAD.includes(f)) b += '<span class="r">' + LBL[f] + "</span>"; });
   if (rej.has(p.f)) b += '<span class="r">' + L("abgelehnt", "rejected") + '</span>';
-  return '<div class="' + c.join(" ") + '" data-i="' + p.i + '" title="' + esc(fmt(p)) + L(" · Qualität ", " · quality ") + p.s + '"><img loading="lazy" src="' + url("thumbs", p) + '" alt=""><div class="star" data-star="1" title="' + (sel.has(p.f) ? L("In der Vorauswahl, anklicken zum Entfernen", "On the shortlist, click to remove") : L("In die Vorauswahl", "Add to the shortlist")) + '">' + "★" + '</div><div class="door" data-door="1" title="' + (fin.has(p.f) ? L("Türchen ", "Door ") + door.get(p.f) + L(", anklicken, um das Türchen zu entfernen", ", click to remove the door") : L("Zum Türchen machen", "Make it a door")) + '">' + (fin.has(p.f) ? door.get(p.f) : "+") + '</div><div class="bd">' + b + "</div></div>";
+  return '<div class="' + c.join(" ") + '" data-i="' + p.i + '" title="' + esc(fmt(p)) + L(" · Qualität ", " · quality ") + p.s + '"><img loading="lazy" src="' + url("thumbs", p) + '" alt=""><div class="star" data-star="1" title="' + (sel.has(p.f) ? L("In der Vorauswahl, anklicken zum Entfernen", "On the shortlist, click to remove") : L("In die Vorauswahl", "Add to the shortlist")) + '">' + "★" + '</div><div class="door" data-door="1" title="' + (fin.has(p.f) ? (door.has(p.f) ? L("Türchen ", "Door ") + door.get(p.f) : L("Im Finale", "In the final round")) + L(", anklicken, um das Türchen zu entfernen", ", click to remove the door") : L("Zum Türchen machen", "Make it a door")) + '">' + (fin.has(p.f) ? door.get(p.f) || "✓" : "+") + '</div><div class="bd">' + b + "</div></div>";
 }
 function render() {
   calcDoors();
   vis = P.filter(match);
   if (F.sort === "s") vis.sort((a, b) => b.s - a.s || a.t - b.t);
+  /* In der Türchen-Ansicht steht das Titelbild immer ganz oben, auch wenn ein Filter (Monat, Ort, Format …) es sonst ausblenden würde */
+  const cov = F.fin && cover ? byName.get(cover) : null;
+  if (cov) vis = vis.filter(p => p !== cov);
   let h = "";
-  if (F.sort === "t") {
+  const byDoor = F.fin && door.size > 0 && fin.size <= MAX;  /* Türchen-Ansicht: Reihenfolge wie im Kalender, Tauschen verschiebt die Bilder sichtbar */
+  if (byDoor) {  /* das Titelbild kann zugleich ein Türchen sein: dann steht es oben und im Raster */
+    vis.sort((a, b) => (door.get(a.f) || 99) - (door.get(b.f) || 99));
+    const grid = cov && door.has(cov.f) ? vis.concat(cov).sort((a, b) => door.get(a.f) - door.get(b.f)) : vis;
+    h = "<h2>" + L("Türchen", "Doors") + '<span class="n">' + grid.length + L(" von ", " of ") + MAX + "</span></h2><div class='grid'>" + grid.map(p => tile(p)).join("") + "</div>";
+  }
+  else if (F.sort === "t") {
     let k = ""; const nm = {}; vis.forEach(p => { const m = ym(p); nm[m] = (nm[m] || 0) + 1; });
     vis.forEach(p => { const m = ym(p); if (m !== k) { h += (k ? "</div>" : "") + "<h2>" + moName(m) + '<span class="n">' + nm[m] + (nm[m] === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + '</span><span class="hs" data-hs="' + m + '"></span></h2><div class=\'grid\'>'; k = m; } h += tile(p); });
     if (k) h += "</div>";
   } else h = '<h2>' + L("Nach Qualität", "By quality") + '<span class="n">' + vis.length + (vis.length === 1 ? L(" Bild", " photo") : L(" Bilder", " photos")) + "</span></h2><div class='grid'>" + vis.map(p => tile(p)).join("") + "</div>";
+  if (byDoor && door.size > 1) h = '<p class="hint" id="swaphint">' + L("Die Türchen stehen in Kalender-Reihenfolge. Zieh ein Türchen auf ein anderes, dann tauschen die beiden ihre Plätze. Ohne Tausch gilt das Datum.", "The doors are in calendar order. Drag a door onto another to swap their places. Without a swap, the date decides.") + (Object.keys(S.pin).length ? ' <button id="unpin">' + L("Wieder nach Datum ordnen", "Order by date again") + "</button>" : "") + "</p>" + h;
+  if (cov) { h = "<h2>" + L("Titelbild", "Cover") + "</h2><div class='grid'>" + tile(cov) + "</div>" + h; vis.unshift(cov); }
   $("main").innerHTML = h || "<p class='hint'>" + (!D.photos.length ? (window.DATA
     ? L("Keine Bilder gefunden. Prüfe PHOTOS und START und starte process.py, arc.py und build.py noch einmal (siehe README).", "No photos found. Check PHOTOS and START, then run process.py, arc.py and build.py again (see README).")
     : L("Noch keine Daten. Starte zuerst process.py, arc.py und build.py (siehe README) und lade die Seite dann neu.", "No data yet. Run process.py, arc.py and build.py first (see README), then reload this page."))
     : L("Keine Bilder für diesen Filter.", "No photos for this filter.")) + "</p>";
+  if (F.fin && door.size) document.querySelectorAll("#main .t.fin").forEach(el => { el.draggable = true; el.title += L(" · Auf ein anderes Türchen ziehen, um die Nummern zu tauschen", " · Drag onto another door to swap the numbers"); });
   $("first").hidden = fin.size > 0 || !D.photos.length;
   markGc();
   head();
@@ -425,9 +457,9 @@ function fillMore() {
 }
 function head() {
   calcDoors();
-  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : "+"; });
+  document.querySelectorAll(".t.sel .door").forEach(el => { const p = P[+el.parentNode.dataset.i]; el.textContent = door.has(p.f) ? door.get(p.f) : fin.has(p.f) ? "✓" : "+"; el.classList.toggle("pin", !!S.pin[p.f]); if (S.pin[p.f] && !el.title.includes("·")) el.title = L("Nummer festgelegt · ", "Number fixed · ") + el.title; });
   const n = fin.size, viewAll = !F.only && !F.fin;
-  $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (cover ? L(" +Titel", " +cover") : "");
+  $("nAll").textContent = viewAll ? vis.length : ""; $("nPre").textContent = sel.size; $("nFin").textContent = n + "/" + MAX + (n > MAX ? L(" · " + (n - MAX) + " zu viel", " · " + (n - MAX) + " too many") : "") + (cover ? L(" +Titel", " +cover") : ""); $("nFin").className = n > MAX ? "over" : "";
   $("bAll").className = viewAll ? "on" : ""; $("bFin").title = L("Nur die " + MAX + " Türchen und das Titelbild zeigen. Titelbild: " + (cover ? "gewählt" : "fehlt noch"), "Show only the " + MAX + " doors and the cover. Cover: " + (cover ? "chosen" : "missing"));
   const per = {}, pre = {}; fin.forEach(f => { const k = ym(byName.get(f)); per[k] = (per[k] || 0) + 1; }); sel.forEach(f => { const k = ym(byName.get(f)); pre[k] = (pre[k] || 0) + 1; });
   $("months").innerHTML = '<button class="mo' + (F.month === "" ? " on" : "") + '" data-m="">' + L("Alle<small>Monate</small>", "All<small>months</small>") + '</button>' +
@@ -466,17 +498,16 @@ function refreshTiles(p) {
     const s = el.querySelector(".star"); if (s) s.textContent = "★";
   });
 }
-function changed(p) { save(); calcDoors(); refreshTiles(p); head(); if (cur) lbInfo(); if (!$("ex").hidden) openEx(); }
+function changed(p) { save(); calcDoors(); if (F.fin && !cur) render(); else refreshTiles(p); head(); if (cur) lbInfo(); if (!$("ex").hidden) openEx(); }
 function lostRole(p) { const t = [fin.has(p.f) ? L("aus den Türchen", "from the doors") : "", cover === p.f ? L("als Titelbild", "from the cover") : ""].filter(Boolean); if (t.length) toast(L("Auch ", "Also removed ") + t.join(L(" und ", " and ")) + L(" entfernt.", ".")); }
-function toggleSel(p) { if (sel.has(p.f)) { lostRole(p); sel.delete(p.f); fin.delete(p.f); if (cover === p.f) cover = ""; } else { sel.add(p.f); rej.delete(p.f); } changed(p); }
+function toggleSel(p) { if (sel.has(p.f)) { lostRole(p); sel.delete(p.f); fin.delete(p.f); delete S.pin[p.f]; if (cover === p.f) cover = ""; } else { sel.add(p.f); rej.delete(p.f); } changed(p); }
 function toggleFin(p) {
-  if (fin.has(p.f)) fin.delete(p.f);
-  else if (fin.size >= MAX) { toast(L("Alle " + MAX + " Türchen sind vergeben. Entferne zuerst eines.", "All " + MAX + " doors are taken. Remove one first.")); return; }
-  else { fin.add(p.f); sel.add(p.f); rej.delete(p.f); }
+  if (fin.has(p.f)) { fin.delete(p.f); delete S.pin[p.f]; }
+  else { fin.add(p.f); sel.add(p.f); rej.delete(p.f); if (fin.size === MAX + 1) toast(L("Mehr als " + MAX + " im Finale. Das geht, die Türchennummern kommen, sobald du wieder auf " + MAX + " gekürzt hast.", "More than " + MAX + " in the final round. That is fine; the door numbers return once you are back at " + MAX + ".")); }
   changed(p);
 }
 function toggleCover(p) { if (cover === p.f) cover = ""; else { if (cover) toast(L("Das bisherige Titelbild ist ersetzt.", "The previous cover is replaced.")); cover = p.f; sel.add(p.f); rej.delete(p.f); } changed(p); if (cur) lbStrip(); else render(); }
-function toggleRej(p) { if (rej.has(p.f)) rej.delete(p.f); else { lostRole(p); rej.add(p.f); sel.delete(p.f); fin.delete(p.f); if (cover === p.f) cover = ""; } changed(p); }
+function toggleRej(p) { if (rej.has(p.f)) rej.delete(p.f); else { lostRole(p); rej.add(p.f); sel.delete(p.f); fin.delete(p.f); delete S.pin[p.f]; if (cover === p.f) cover = ""; } changed(p); }
 
 /* ---------- Position merken (URL-Anker): Filter, Scroll-Stelle und offenes Bild überleben ein Neuladen ---------- */
 let anchor = "", scrollTimer = 0;
@@ -569,23 +600,34 @@ function lbInfo() {
   const isSel = sel.has(p.f), isFin = fin.has(p.f), isCov = cover === p.f, isRej = rej.has(p.f), bd = $("lbbadge");
   $("lSel").textContent = isSel ? L("Aus Vorauswahl entfernen", "Remove from shortlist") : L("☆ In die Vorauswahl", "☆ Add to shortlist"); $("lSel").className = isSel ? "" : "pri";
   $("lFin").textContent = isFin ? L("Türchen entfernen", "Remove door") : L("Zum Türchen machen", "Make it a door"); $("lFin").className = isSel && !isFin ? "pri" : "";
+  const ld = $("lDoor"); ld.hidden = !door.has(p.f);
+  if (!ld.hidden) { const pn = S.pin[p.f] || 0; ld.title = L("Türchennummer festlegen", "Set the door number"); ld.innerHTML = '<option value="0">' + (pn ? L("Nach Datum einordnen", "Place by date") : L("Nr. " + door.get(p.f) + " (nach Datum)", "No. " + door.get(p.f) + " (by date)")) + "</option>" + Array.from({length: MAX}, (_, k) => '<option value="' + (k + 1) + '"' + (pn === k + 1 ? " selected" : "") + ">" + L("Nr. ", "No. ") + (k + 1) + L(" festlegen", " fixed") + "</option>").join(""); }
   $("lCov").textContent = isCov ? L("Titelbild aufheben", "Remove cover") : L("Als Titelbild", "Use as cover");
   $("lRej").textContent = isRej ? L("Ablehnung aufheben", "Undo reject") : L("✕ Ablehnen", "✕ Reject");
   $("lbimgw").className = isSel ? "sel" : isRej ? "rej" : "";
   bd.hidden = !(isSel || isRej); bd.className = isRej ? "no" : "";
-  bd.textContent = isRej ? L("✕ Abgelehnt", "✕ Rejected") : (isFin ? L("★ Türchen ", "★ Door ") + door.get(p.f) : L("★ Vorauswahl", "★ Shortlist")) + (isCov ? L(" · Titelbild", " · cover") : "");
+  bd.textContent = isRej ? L("✕ Abgelehnt", "✕ Rejected") : (isFin ? (door.has(p.f) ? L("★ Türchen ", "★ Door ") + door.get(p.f) : L("★ Finale (" + (fin.size - MAX) + " zu viel)", "★ Final round (" + (fin.size - MAX) + " too many)")) : L("★ Vorauswahl", "★ Shortlist")) + (isCov ? L(" · Titelbild", " · cover") : "");
   drawCrop();
   $("lBack").hidden = !(lastVis && !vis.includes(p));
   if (lastVis && !vis.includes(p)) $("lBack").textContent = L("↩ Zurück zur Galerie-Ansicht (Bild ", "↩ Back to the gallery view (photo ") + (vis.indexOf(lastVis) + 1) + ")";
 }
+/* The strip stays put while the current photo is in it: a click or an arrow key inside it only moves the frame, and the strip
+   scrolls only as far as needed to keep that photo in view. It is rebuilt around the photo for another tab or a photo outside it. */
+let stripList = null, stripTab = "";
 function lbStrip() {
+  const st = $("strip");
+  if (stripList && stripTab === tab && stripList.includes(cur)) {
+    const y = st.scrollTop; st.innerHTML = stripList.map(q => tile(q, q === cur ? "cur" : "")).join(""); st.scrollTop = y;
+    const c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); if (a.top < b.top) st.scrollTop -= b.top - a.top + 6; else if (a.bottom > b.bottom) st.scrollTop += a.bottom - b.bottom + 6; }
+    return;
+  }
   const CAP = 300; let r = related(cur); const total = r.length;
   if (r.length > CAP) { const k = r.findIndex(q => q.i >= cur.i), a = Math.max(0, Math.min(k - CAP / 2, r.length - CAP)); r = r.slice(a, a + CAP); }
   const note = {n: L("Gleiche Serie und die Bilder direkt davor und danach.", "Same burst and the photos right before and after."), m: L("Bilder vom selben Zeitpunkt (Pausen unter 2 Stunden).", "Photos from the same moment (gaps under 2 hours)."), p: cur.p < 0 ? L("Dieses Bild hat keine GPS-Daten.", "This photo has no GPS data.") : L("Bilder vom selben Ort: ", "Photos from the same place: ") + D.places[cur.p].n + ".", pe: cur.pe.length ? L("Bilder mit denselben Personen.", "Photos with the same people.") : L("Keine bekannte Person auf diesem Bild.", "No known person in this photo.")}[tab];
   $("stripinfo").textContent = note + " " + total + L(" Bilder", " photos") + (total > r.length ? " (" + r.length + L(" angezeigt)", " shown)") : "") + L(", einschließlich der aussortierten Bilder.", ", including sorted-out ones.");
-  $("strip").innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
+  stripList = r; stripTab = tab; st.innerHTML = r.map(q => tile(q, q === cur ? "cur" : "")).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.className = b.dataset.tab === tab ? "on" : "");
-  const st = $("strip"), c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
+  const c = st.querySelector(".cur"); if (c) { const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); st.scrollTop += a.top - b.top - (b.height - a.height) / 2; }  /* scroll the strip only, not the page */
 }
 /* ---------- Zuschnitt-Vorschau. Maße aus dem BIPA/CEWE-Projekt "Adventskalender mit Türchenbildern & kinder, Querformat" abgelesen:
    Titel 30,5 x 21 cm, 6 x 4 quadratische Türchen (je ca. 4 cm). Hochformat-Raster ist nur gedreht geschätzt. Zuschnitt ist mittig; im Editor lässt er sich verschieben. ---------- */
@@ -597,11 +639,34 @@ function drawCrop() {
   if (!c || !cur || !img.clientWidth) { el.hidden = true; return; }
   const W = img.clientWidth, H = img.clientHeight, wr = $("lbimgw").getBoundingClientRect(), ir = img.getBoundingClientRect();
   let w = W, h = W / c.a; if (h > H) { h = H; w = H * c.a; }
-  el.style.left = (ir.left - wr.left + (W - w) / 2) + "px"; el.style.top = (ir.top - wr.top + (H - h) / 2) + "px"; el.style.width = w + "px"; el.style.height = h + "px";
+  const k = effCrop(cur), pos = cpGet(cur, k); cropGeo = {W, H, w, h};
+  el.style.left = (ir.left - wr.left + (W - w) * pos[0]) + "px"; el.style.top = (ir.top - wr.top + (H - h) * pos[1]) + "px";
+  const ok = cropKeyOk(cur, k); el.style.cursor = ok ? "" : "default";
+  el.title = ok ? L("Ziehen verschiebt den Zuschnitt, Doppelklick setzt ihn in die Mitte zurück.", "Drag to move the crop, double-click to centre it again.") : L("Dieses Format passt nicht zum Foto und wird nicht exportiert, deshalb lässt es sich nicht verschieben.", "This format does not fit the photo and is not exported, so it cannot be moved."); el.style.width = w + "px"; el.style.height = h + "px";
   let g = "";
   if (c.nx) for (let j = 0; j < c.ny; j++) for (let i = 0; i < c.nx; i++) g += '<i style="left:' + (c.x0 + i * c.sx) * 100 + "%;top:" + (c.y0 + j * c.sy) * 100 + "%;width:" + c.w * 100 + "%;height:" + c.h * 100 + '%"></i>';
   el.innerHTML = g; el.hidden = false;
 }
+/* Verschobener Zuschnitt: pro Foto und Format (d Türchen, q/h Titelbild) die Lage im Bild, 0 = links/oben, 0,5 = Mitte,
+   1 = rechts/unten. Nur eine Vorgabe: export.py schneidet nichts, es schreibt die Werte nach calendar-photos/crops.json. */
+let cropGeo = null, drag = null;
+/* Werte aus einer Sicherungsdatei nur übernehmen, wenn sie passen: sie landen im Export-Befehl */
+const isObj = o => o && typeof o === "object" && !Array.isArray(o);
+function cleanCp(o) { const r = {}; if (isObj(o)) Object.keys(o).forEach(f => { if (!byName.has(f) || !isObj(o[f])) return; ["d", "q", "h"].forEach(k => { const v = o[f][k]; if (Array.isArray(v) && v.length === 2 && v.every(x => typeof x === "number" && x >= 0 && x <= 1)) (r[f] = r[f] || {})[k] = v; }); }); return r; }
+function cleanPin(o) { const r = {}; if (isObj(o)) Object.keys(o).forEach(f => { const n = o[f]; if (byName.has(f) && Number.isInteger(n) && n >= 1 && n <= MAX) r[f] = n; }); return r; }
+const cpGet = (p, k) => (S.cp[p.f] || {})[k] || [.5, .5];
+const clamp01 = v => Math.max(0, Math.min(1, v));
+/* nur in Formaten ziehen, die der Export liest: Türchen (d) immer, Titelbild nur im Format des Fotos (q quer, h hoch) */
+const cropKeyOk = (p, k) => k === "d" || k === (isQuer(p) ? "q" : "h");
+$("crop").addEventListener("pointerdown", e => { if (!cur || !cropGeo || !cropKeyOk(cur, effCrop(cur))) return; drag = {x: e.clientX, y: e.clientY, k: effCrop(cur), p0: cpGet(cur, effCrop(cur))}; $("crop").setPointerCapture(e.pointerId); e.preventDefault(); });
+$("crop").addEventListener("pointermove", e => {
+  if (!drag || !cur) return; const g = cropGeo, fw = g.W - g.w, fh = g.H - g.h;
+  const pos = [fw > 1 ? clamp01(drag.p0[0] + (e.clientX - drag.x) / fw) : .5, fh > 1 ? clamp01(drag.p0[1] + (e.clientY - drag.y) / fh) : .5];
+  (S.cp[cur.f] = S.cp[cur.f] || {})[drag.k] = pos.map(v => Math.round(v * 1000) / 1000); drawCrop();
+});
+const endDrag = () => { if (drag) { drag = null; save(); } };
+$("crop").addEventListener("pointerup", endDrag); $("crop").addEventListener("pointercancel", endDrag);
+$("crop").addEventListener("dblclick", () => { if (!cur || !S.cp[cur.f]) return; delete S.cp[cur.f][effCrop(cur)]; if (!Object.keys(S.cp[cur.f]).length) delete S.cp[cur.f]; save(); drawCrop(); });
 function setCrop(m) { cropMode = m; S.crop = m; $("lCrop").value = m; save(); drawCrop(); }
 let lastVis = null;
 function backToVis() { if (cur && lastVis && !vis.includes(cur)) openLb(lastVis); }
@@ -610,7 +675,7 @@ function openLb(p) { cur = p; if (vis.includes(p)) lastVis = p; seen.add(p.f); l
    (aussortiert, schon gesehen, aus dem Streifen rechts geöffnet), das zeitlich nächste Bild der Galerie */
 function nearestVis(p) { let best = null, d = Infinity; vis.forEach(q => { const x = Math.abs(q.t - p.t) * 1e6 + Math.abs(q.i - p.i); if (x < d) { d = x; best = q; } }); return best; }
 function closeLb() {
-  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; $("lbimg").removeAttribute("src"); render();
+  const last = cur; $("lb").hidden = true; cur = null; lastVis = null; stripList = null; $("lbimg").removeAttribute("src"); render();
   if (!last) return;
   const near = vis.includes(last) ? last : nearestVis(last);
   if (near) { gc = near; anchor = near.f; markGc(); scrollToFile(near.f, true); writeHash(); }
@@ -623,14 +688,16 @@ const WIN = D.sep === "\\";
 function shq(s) { return '"' + (WIN ? s : s.replace(/(["\\$`])/g, "\\$1")) + '"'; }
 function expName(p, prefix) { return prefix + "_" + dt(p).toISOString().slice(0, 10) + "_" + p.f.split("/").pop().replace(/\.[^.]+$/, "").replace(/[^\w-]+/g, "_") + ".jpg"; }
 function openEx() {
-  const list = [...fin].map(f => byName.get(f)).sort((a, b) => a.t - b.t), cov = cover ? byName.get(cover) : null, dir = D.out + (D.sep || "/") + "calendar-photos";
+  const list = [...fin].map(f => byName.get(f)).sort((a, b) => (door.get(a.f) || 99) - (door.get(b.f) || 99) || a.t - b.t), cov = cover ? byName.get(cover) : null, dir = D.out + (D.sep || "/") + "calendar-photos";
   $("exh").textContent = "Export: " + list.length + L(" von ", " of ") + MAX + L(" Türchen", " doors") + (list.length === MAX ? " ✓" : "") + L(" · Titelbild ", " · cover ") + (cov ? "✓ (" + (isQuer(cov) ? L("Querformat", "landscape") : L("Hochformat", "portrait")) + ")" : L("fehlt", "missing")) + L(" · Vorauswahl ", " · shortlist ") + sel.size;
   $("exdir").textContent = dir;
-  const miss = [list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
+  const over = list.length > MAX, miss = [over ? L("Das sind " + (list.length - MAX) + " Bilder zu viel. Entferne sie aus den Türchen, dann gibt es hier den Befehl.", "That is " + (list.length - MAX) + " photos too many. Remove them from the doors, and the command appears here.") : list.length < MAX ? L("Es fehlen noch ", "Still missing: ") + (MAX - list.length) + L(" Türchen.", " doors.") : "", cov ? "" : L("Das Titelbild fehlt.", "The cover is missing.")].filter(Boolean);
   if (D.key) miss.push(L("Das ist die Demo. Der Befehl zeigt nur, wie er aussieht, und wird nicht ausgeführt.", "This is the demo. The command only shows what it looks like and does not run."));
   $("exwarn").textContent = miss.join(" "); $("exwarn").hidden = !miss.length;
-  const args = (cov ? [shq(expName(cov, "00_cover") + "=" + cov.f)] : []).concat(list.map((p, k) => shq(expName(p, String(k + 1).padStart(2, "0")) + "=" + p.f)));
-  $("excmd").value = list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
+  const crop = (t, p, k) => { const c = (S.cp[p.f] || {})[k]; return c && (c[0] !== .5 || c[1] !== .5) ? [shq("--crop=" + t + "=" + c.map(v => clamp01(Number(v) || 0).toFixed(3)).join(","))] : []; };
+  const one = (p, pre, k) => { const t = expName(p, pre); return [shq(t + "=" + p.f)].concat(crop(t, p, k)); };
+  const args = (cov ? one(cov, "00_cover", isQuer(cov) ? "q" : "h") : []).concat(...list.map((p, k) => one(p, String(door.get(p.f) || k + 1).padStart(2, "0"), "d")));
+  $("excmd").value = over ? "" : list.length || cov ? [shq(D.py || "python3"), shq(D.out + (D.sep || "/") + "export.py")].concat(args).join(" ") : L("Noch kein Türchen. Öffne ein Bild der Vorauswahl und wähle „Zum Türchen machen“, oder klicke in der Galerie auf das „+“ unter dem Stern.", "No door yet. Open a shortlisted photo and choose “Make it a door”, or click the “+” under the star in the gallery.");
   $("exAll").hidden = !(sel.size > 0 && sel.size <= MAX && fin.size < sel.size);
   $("exgrid").innerHTML = (cov ? tile(cov, "x") : "") + list.map(p => tile(p, "x")).join("");
   $("ex").hidden = false;
@@ -756,7 +823,23 @@ if (EXTRA.length) {
 }
 $("lCrop").value = cropMode; $("lCrop").onchange = e => { setCrop(e.target.value); e.target.blur(); };
 $("lbimg").addEventListener("load", drawCrop); window.addEventListener("resize", drawCrop);
-$("lFin").onclick = () => toggleFin(cur); $("lCov").onclick = () => toggleCover(cur); $("lBack").onclick = backToVis;
+$("lFin").onclick = () => toggleFin(cur); let dragDoor = null;
+const clearSwap = () => document.querySelectorAll("#main .t.swap, #main .t.dragging").forEach(el => { el.classList.remove("swap", "dragging"); delete el.dataset.swap; });
+$("main").addEventListener("dragstart", e => { const t = e.target.closest && e.target.closest(".t.fin"); if (!t || !F.fin || !door.size) return; dragDoor = P[+t.dataset.i]; t.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragDoor.f); });
+$("main").addEventListener("dragover", e => {
+  if (!dragDoor) return; const t = e.target.closest(".t.fin"), q = t && P[+t.dataset.i];
+  if (!t || q === dragDoor) { document.querySelectorAll("#main .t.swap").forEach(el => { el.classList.remove("swap"); delete el.dataset.swap; }); return; }
+  e.preventDefault(); e.dataTransfer.dropEffect = "move";
+  if (!t.classList.contains("swap")) { document.querySelectorAll("#main .t.swap").forEach(el => { el.classList.remove("swap"); delete el.dataset.swap; }); t.classList.add("swap"); t.dataset.swap = L("Nr. ", "No. ") + door.get(dragDoor.f) + " ⇄ " + door.get(q.f); }
+});
+$("main").addEventListener("drop", e => {
+  const t = e.target.closest(".t.fin"); if (!dragDoor || !t) return; e.preventDefault();
+  const a = dragDoor, b = P[+t.dataset.i]; dragDoor = null; clearSwap(); swapDoors(a, b);
+  [a, b].forEach(p => document.querySelectorAll('#main .t[data-i="' + p.i + '"]').forEach(el => el.classList.add("swapped")));
+});
+$("main").addEventListener("dragend", () => { dragDoor = null; clearSwap(); });
+document.addEventListener("click", e => { if (e.target.id === "unpin") { S.pin = {}; save(); calcDoors(); render(); toast(L("Alle Türchen wieder nach Datum.", "All doors are ordered by date again.")); } });
+$("lDoor").onchange = e => { e.target.blur(); if (cur) pinDoor(cur, +e.target.value); }; $("lCov").onclick = () => toggleCover(cur); $("lBack").onclick = backToVis;
 $("exAll").onclick = () => { sel.forEach(f => fin.add(f)); save(); render(); openEx(); };
 $("sSort").onchange = e => { F.sort = e.target.value; render(); };
 $("sPlace").onchange = e => { F.place = e.target.value; render(); };
@@ -767,7 +850,7 @@ $("bTheme").onclick = () => { S.plain = !S.plain; document.body.classList.toggle
 $("bEx").onclick = openEx; $("exClose").onclick = () => { $("ex").hidden = true; };
 $("exCopy").onclick = () => { $("excmd").select(); try { navigator.clipboard.writeText($("excmd").value); } catch (e) { document.execCommand("copy"); } $("exCopy").textContent = L("Kopiert ✓", "Copied ✓"); setTimeout(() => $("exCopy").textContent = L("Befehl kopieren", "Copy command"), 1500); };
 $("exJson").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(state(), null, 1)], {type: "application/json"})); a.download = L("adventkalender-auswahl.json", "advent-calendar-selection.json"); a.click(); };
-$("exLoad").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const j = JSON.parse(r.result); sel = new Set((j.sel || []).filter(x => byName.has(x))); rej = new Set((j.rej || []).filter(x => byName.has(x))); fin = new Set((j.fin || []).filter(x => sel.has(x))); cover = byName.has(j.cover) ? j.cover : ""; seen = new Set(j.seen || []); lastSeen = j.last || ""; if (j.pver === D.pver) { S.names = j.names || {}; S.merge = j.merge || {}; S.hide = j.hide || []; } if (j.pl && j.pl.merge && j.pl.names) S.pl = j.pl; save(); applyMerge(); applyPlaces(); render(); openEx(); } catch (err) { alert(L("Datei nicht lesbar.", "Can't read this file.")); } }; r.readAsText(f); };
+$("exLoad").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const j = JSON.parse(r.result); sel = new Set((j.sel || []).filter(x => byName.has(x))); rej = new Set((j.rej || []).filter(x => byName.has(x))); fin = new Set((j.fin || []).filter(x => sel.has(x))); cover = byName.has(j.cover) ? j.cover : ""; seen = new Set(j.seen || []); lastSeen = j.last || ""; if (j.pver === D.pver) { S.names = j.names || {}; S.merge = j.merge || {}; S.hide = j.hide || []; } if (j.pl && j.pl.merge && j.pl.names) S.pl = j.pl; S.cp = cleanCp(j.cp); S.pin = cleanPin(j.pin); save(); applyMerge(); applyPlaces(); render(); openEx(); } catch (err) { alert(L("Datei nicht lesbar.", "Can't read this file.")); } }; r.readAsText(f); };
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("mp").hidden) { closePops(); return; }
   if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
