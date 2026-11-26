@@ -23,14 +23,18 @@ DOOR, COVER = 1.0, 30.5 / 21   # aspect ratios of a door and the landscape cover
 crops = {}
 for a in sys.argv[1:]:
     if a.startswith("--crop="):
-        t, xy = a[len("--crop="):].rsplit("=", 1)
-        crops[t] = [min(1.0, max(0.0, float(v))) for v in xy.split(",")]
+        try:
+            t, xy = a[len("--crop="):].rsplit("=", 1)
+            x, y = (min(1.0, max(0.0, float(v))) for v in xy.split(","))
+        except ValueError:
+            sys.exit("Can't read " + a + ". Copy the whole command from the page's export dialog. Nothing was changed.")
+        crops[t] = [x, y]
 pairs = [a.split("=", 1) for a in sys.argv[1:] if not a.startswith("--crop=")]
 if not pairs: sys.exit("Nothing to export. Copy the whole command from the page's export dialog.")
 missing = [n for _, n in pairs if not os.path.exists(source_path(n, SRC, EXTRA))]
 if missing: sys.exit("Not found in " + SRC + ": " + ", ".join(missing[:3]) + ". Nothing was changed.")
 for old in os.listdir(OUT):   # an earlier export would leave a second 07_... next to the new one
-    if old[:2].isdigit() and old[2:3] == "_" and old.lower().endswith(".jpg"): os.remove(os.path.join(OUT, old))
+    if old == "crops.json" or old[:2].isdigit() and old[2:3] == "_" and old.lower().endswith(".jpg"): os.remove(os.path.join(OUT, old))
 boxes = {}
 for target, name in pairs:
     im = Image.open(source_path(name, SRC, EXTRA))
